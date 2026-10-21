@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Productos y ganancias</title>
+
+    <!-- Bootstrap 5 y Bootstrap Icons (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Estilos propios (variables + layout + módulo 1) -->
+    <link href="./modulo-1.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- =====================================================
+       1. TOP NAVBAR (fija en la parte superior)
+       ===================================================== -->
+    <header class="app-navbar" role="banner">
+        <div class="d-flex align-items-center gap-3">
+            <!-- Botón que expande/colapsa el sidebar -->
+            <button id="sidebarToggle" class="icon-btn" type="button" aria-label="Alternar menú lateral"
+                aria-controls="sidebar" aria-expanded="true">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <!-- Espacio para el logo -->
+            <img src="../logo_ESJ.png" alt="Logo de Grupo San José" class="brand-logo">
+        </div>
+
+        <div class="d-flex align-items-center gap-2 gap-md-3">
+            <!-- Ícono de notificaciones con indicador -->
+            <button class="icon-btn position-relative" type="button" aria-label="Notificaciones">
+                <i class="bi bi-bell"></i>
+                <span class="notif-dot"></span>
+            </button>
+
+            <!-- Saludo de bienvenida -->
+            <div class="welcome-pill">
+                <i class="bi bi-person-circle"></i>
+                <span class="d-none d-md-inline">¡Bienvenida, Ana María!</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- =====================================================
+       2. SIDEBAR (colapsable con JavaScript)
+       Cada opción enlaza a la página de su módulo.
+       ===================================================== -->
+    <aside id="sidebar" class="app-sidebar" aria-label="Navegación principal">
+        <nav>
+            <ul class="nav-list">
+                <li>
+                    <a href="../modulo-1/modulo-1.html" class="nav-item active" title="Productos y ganancias"
+                        aria-current="page">
+                        <i class="bi bi-box-seam"></i>
+                        <span class="nav-label">Productos y ganancias</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="../modulo-2/modulo-2.html" class="nav-item" title="Control de proveedores">
+                        <i class="bi bi-truck"></i>
+                        <span class="nav-label">Control de proveedores</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="../modulo-3/modulo-3.html" class="nav-item" title="Control de mermas">
+                        <i class="bi bi-clipboard-data"></i>
+                        <span class="nav-label">Control de mermas</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Fondo oscuro que aparece en móvil cuando el sidebar está abierto -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+    <!-- =====================================================
+       3. CONTENIDO PRINCIPAL - MÓDULO 1: PRODUCTOS Y GANANCIAS
+       Todo se renderiza desde JS a partir de los datos guardados.
+       ===================================================== -->
+    <main class="app-main" role="main">
+
+        <!-- Encabezado de la página + acciones principales -->
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+            <div>
+                <h1 class="page-title">Catálogo y Rentabilidad</h1>
+                <!-- Resumen de la sede activa (lo escribe el JS) -->
+                <p id="importMeta" class="meta-text mb-0 mt-1">Aún no hay productos en esta sede.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-brand" type="button" data-bs-toggle="modal"
+                    data-bs-target="#importModal">
+                    <i class="bi bi-file-earmark-excel me-2"></i>Importar Excel
+                </button>
+                <button class="btn btn-brand" type="button" data-bs-toggle="modal" data-bs-target="#productModal">
+                    <i class="bi bi-plus-lg me-2"></i>Agregar Producto
+                </button>
+            </div>
+        </div>
+
+        <!-- ---------- Barra de herramientas: filtros, orden y búsqueda ---------- -->
+        <div class="table-toolbar mb-3">
+
+            <!-- Menú "Filtros": elige la métrica por la que se ordena la vista -->
+            <div class="dropdown">
+                <button id="filterBtn" class="btn btn-outline-brand" type="button" data-bs-toggle="dropdown"
+                    data-bs-auto-close="outside" aria-expanded="false">
+                    <i class="bi bi-funnel me-2"></i>Filtros
+                </button>
+                <div class="dropdown-menu filter-menu p-3" aria-labelledby="filterBtn">
+                    <p class="filter-title">Filtrar por</p>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="filterVentas" value="ventas">
+                        <label class="form-check-label" for="filterVentas">Por ventas</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="filterRotacion" value="rotacion">
+                        <label class="form-check-label" for="filterRotacion">Por rotación</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chip de orden: muestra el criterio activo y alterna Asc. / Desc. al hacer clic -->
+            <button id="sortChip" class="sort-chip" type="button" title="Cambiar entre orden ascendente y descendente">
+                <span id="sortChipLabel">Por ventas</span>
+                <span id="sortChipDir" class="sort-chip-dir">Desc.</span>
+                <i id="sortChipIcon" class="bi bi-arrow-down"></i>
+            </button>
+
+            <!-- Búsqueda por SKU o nombre -->
+            <div class="input-group toolbar-search ms-lg-auto">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input id="searchInput" type="search" class="form-control" placeholder="Buscar por SKU o nombre"
+                    aria-label="Buscar productos">
+            </div>
+        </div>
+
+        <!-- ---------- Tabla de productos ---------- -->
+        <div class="card-panel table-card p-0">
+            <div class="table-responsive">
+                <table class="table app-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <!-- Columnas ordenables: data-sort define la clave de ordenamiento -->
+                            <th class="sortable" data-sort="sku" tabindex="0" role="button">SKU<i
+                                    class="bi bi-chevron-expand sort-icon"></i></th>
+                            <th class="sortable" data-sort="producto" tabindex="0" role="button">Nombre del Producto<i
+                                    class="bi bi-chevron-expand sort-icon"></i></th>
+                            <th class="sortable" data-sort="stock" tabindex="0" role="button">Stock<i
+                                    class="bi bi-chevron-expand sort-icon"></i></th>
+                            <th class="sortable" data-sort="costo" tabindex="0" role="button">Costo<i
+                                    class="bi bi-chevron-expand sort-icon"></i></th>
+                            <th class="sortable" data-sort="precio" tabindex="0" role="button">Precio de Venta<i
+                                    class="bi bi-chevron-expand sort-icon"></i></th>
+                            <th class="sortable" data-sort="margen" tabindex="0" role="button">Margen de Ganancia<i
+                                    class="bi bi-chevron-expand sort-icon"></i></th>
+                            <th class="sortable" data-sort="ventas" tabindex="0" role="button">Ventas<i
+                                    class="bi bi-chevron-expand sort-icon"></i></th>
+                            <th class="sortable" data-sort="rotacion" tabindex="0" role="button">Rotación<i
+                                    class="bi bi-chevron-expand sort-icon"></i></th>
+                        </tr>
+                    </thead>
+                    <!-- Se rellena desde JS; por defecto muestra el estado vacío -->
+                    <tbody id="tableBody">
+                        <tr class="table-empty">
+                            <td colspan="8">No hay datos. Importa un archivo Excel o agrega un producto.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span id="tableInfo" class="meta-text"></span>
+                <nav aria-label="Paginación de la tabla">
+                    <ul id="pagination" class="pagination pagination-sm mb-0"></ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- ---------- Pie: selector de sede + traslado ---------- -->
+        <div class="table-bottom">
+            <div class="d-flex align-items-center gap-2">
+                <label for="sedeSelect" class="fw-semibold mb-0">Sede:</label>
+                <select id="sedeSelect" class="form-select sede-select" aria-label="Seleccionar sede"></select>
+            </div>
+            <button class="btn btn-brand" type="button" data-bs-toggle="modal" data-bs-target="#transferModal">
+                <i class="bi bi-arrow-left-right me-2"></i>Transferir a otra sede
+            </button>
+        </div>
+    </main>
+
+    <!-- =====================================================
+       4. MODAL DE IMPORTACIÓN (Excel)
+       ===================================================== -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="importModalLabel">Importar productos desde Excel</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Paso 1: plantilla -->
+                    <div class="step">
+                        <span class="step-num">1</span>
+                        <div>
+                            <p class="fw-semibold mb-1">Descarga la plantilla</p>
+                            <p class="small text-muted mb-2">Completa las columnas con tus productos. La hoja
+                                "Instrucciones" explica cada campo.</p>
+                            <button id="btnTemplate" type="button" class="btn btn-outline-brand btn-sm">
+                                <i class="bi bi-download me-1"></i>Descargar plantilla predeterminada
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Paso 2: sede de destino -->
+                    <div class="step">
+                        <span class="step-num">2</span>
+                        <div class="w-100">
+                            <p class="fw-semibold mb-1">Elige la sede</p>
+                            <p class="small text-muted mb-2">Los productos del archivo reemplazarán los de la sede
+                                seleccionada.</p>
+                            <select id="importSede" class="form-select" aria-label="Sede de destino"></select>
+                        </div>
+                    </div>
+
+                    <!-- Paso 3: carga del archivo -->
+                    <div class="step">
+                        <span class="step-num">3</span>
+                        <div class="w-100">
+                            <p class="fw-semibold mb-1">Sube la plantilla completada</p>
+                            <input id="fileInput" type="file" class="form-control" accept=".xlsx,.xls,.csv"
+                                aria-label="Archivo Excel con los datos">
+                        </div>
+                    </div>
+
+                    <!-- Mensajes de error o advertencia (los escribe el JS) -->
+                    <div id="importMessage" class="msg-box d-none" role="alert"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="btnClear" type="button" class="btn btn-outline-brand btn-sm me-auto">
+                        <i class="bi bi-trash3 me-1"></i>Eliminar datos guardados
+                    </button>
+                    <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
+                    <button id="btnImport" type="button" class="btn btn-brand" disabled>Importar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+       5. MODAL: AGREGAR PRODUCTO (con escáner de código de barras)
+       ===================================================== -->
+    <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <form id="productForm" novalidate>
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5" id="productModalLabel">Agregar producto</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <p class="meta-text mb-3">Se agregará a la sede: <strong id="productSede"></strong></p>
+
+                        <!-- Código / SKU con botón de escaneo -->
+                        <div class="field mb-3">
+                            <label for="pSku" class="form-label">Código de producto (SKU)</label>
+                            <input id="pSku" class="form-control" type="text" maxlength="40" autocomplete="off"
+                                placeholder="Escribe o escanea el código">
+                            <div class="invalid-feedback"></div>
+                            <button id="btnScan" type="button" class="btn btn-outline-brand btn-sm mt-2">
+                                <i id="btnScanIcon" class="bi bi-upc-scan me-2"></i><span id="btnScanText">Escanear
+                                    código de barras</span>
+                            </button>
+                        </div>
+
+                        <!-- Panel de la cámara (visible solo mientras se escanea) -->
+                        <div id="scannerPanel" class="scanner-panel mb-3 d-none">
+                            <div id="barcodeReader"></div>
+                            <p id="scannerStatus" class="meta-text mt-2 mb-0" aria-live="polite"></p>
+                        </div>
+                        <div id="scannerMessage" class="msg-box d-none mb-3" role="alert"></div>
+
+                        <div class="field mb-3">
+                            <label for="pNombre" class="form-label">Nombre del producto</label>
+                            <input id="pNombre" class="form-control" type="text" maxlength="120" autocomplete="off">
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-6 field">
+                                <label for="pStock" class="form-label">Stock</label>
+                                <input id="pStock" class="form-control" type="number" min="0" step="any"
+                                    inputmode="decimal">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-6 field">
+                                <label for="pVentas" class="form-label">Ventas <span
+                                        class="text-muted fw-normal">(opcional)</span></label>
+                                <input id="pVentas" class="form-control" type="number" min="0" step="any"
+                                    inputmode="decimal" placeholder="0">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-6 field">
+                                <label for="pCosto" class="form-label">Costo</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">S/</span>
+                                    <input id="pCosto" class="form-control" type="number" min="0" step="0.01"
+                                        inputmode="decimal">
+                                </div>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-6 field">
+                                <label for="pPrecio" class="form-label">Precio de venta</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">S/</span>
+                                    <input id="pPrecio" class="form-control" type="number" min="0" step="0.01"
+                                        inputmode="decimal">
+                                </div>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+
+                        <!-- Errores generales del formulario (por ejemplo, fallo al guardar) -->
+                        <div id="productMessage" class="msg-box d-none mt-3" role="alert"></div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-brand">Guardar producto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+       6. MODAL: REGISTRAR TRASLADO DE MERCADERÍA
+       ===================================================== -->
+    <div class="modal fade" id="transferModal" tabindex="-1" aria-labelledby="transferModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-transfer">
+            <div class="modal-content">
+                <form id="transferForm" novalidate>
+                    <div class="modal-header border-0 pb-0">
+                        <h2 class="modal-title fs-5 fw-semibold" id="transferModalLabel">Registrar traslado de
+                            Mercadería</h2>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="field mb-3">
+                            <label for="tOrigen" class="form-label">Sede Origen</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <select id="tOrigen" class="form-select"></select>
+                            </div>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="field mb-3">
+                            <label for="tDestino" class="form-label">Sede Destino</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <select id="tDestino" class="form-select"></select>
+                            </div>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="field mb-3">
+                            <label for="tProducto" class="form-label">Nombre del Producto o SKU</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input id="tProducto" class="form-control" type="text" list="transferProducts"
+                                    autocomplete="off">
+                            </div>
+                            <datalist id="transferProducts"></datalist>
+                            <div class="invalid-feedback"></div>
+                        </div>
+
+                        <div class="field mb-3">
+                            <label for="tCantidad" class="form-label">Cantidad</label>
+                            <input id="tCantidad" class="form-control qty-input" type="number" min="0" step="any"
+                                inputmode="decimal">
+                            <div class="invalid-feedback"></div>
+                            <!-- Ayuda: stock disponible del producto elegido -->
+                            <p id="tStockHint" class="meta-text mb-0 mt-1" aria-live="polite"></p>
+                        </div>
+
+                        <div class="field mb-2">
+                            <label for="tMotivo" class="form-label">Motivo o Notas</label>
+                            <textarea id="tMotivo" class="form-control" rows="4" maxlength="250"></textarea>
+                        </div>
+
+                        <div id="transferMessage" class="msg-box d-none mt-3" role="alert"></div>
+                    </div>
+
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-link-brand" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-brand">Confirmar / Enviar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aviso emergente para confirmaciones (importación, alta, traslado) -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="appToast" class="toast app-toast" role="status" aria-live="polite" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-start gap-2">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span id="toastText"></span>
+                </div>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"
+                    aria-label="Cerrar"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Librerías: Bootstrap JS, SheetJS (Excel) y html5-qrcode (escáner de cámara) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <!-- Lógica propia -->
+    <script src="./modulo-1.js"></script>
+</body>
+
+</html>
