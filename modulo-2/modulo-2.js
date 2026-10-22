@@ -162,7 +162,7 @@ function renderTablaReponer() {
             <td>${item.stock}</td>
             <td>${item.proveedor}</td>
             <td class="text-center">
-                <button class="btn btn-sm ${btnClass} rounded-pill px-3" ${btnDisabled} onclick="cambiarEstadoReponer(${item.id})">
+                <button class="btn btn-sm ${btnClass} rounded-pill px-3" ${btnDisabled} onclick="abrirModalNotificar(${item.id})"">
                     ${item.estado}
                 </button>
             </td>
@@ -209,14 +209,85 @@ function renderTablaPedidos() {
 // 3. FUNCIONES DE ACCIÓN (SIMULACIÓN DE ESTADOS)
 // ==========================================
 
-function cambiarEstadoReponer(id) {
+// ==========================================
+// 6. LÓGICA DE NOTIFICACIÓN A PROVEEDORES
+// ==========================================
+
+let idProductoPorNotificar = null; // Guarda temporalmente el ID que se está procesando
+
+// 1. Escuchar el clic del botón de confirmar en el modal
+document.addEventListener('DOMContentLoaded', () => {
+    // Asegurarse de que el botón exista antes de asignarle el evento
+    const btnConfirmar = document.getElementById('btnConfirmarNotificacion');
+    if (btnConfirmar) {
+        btnConfirmar.addEventListener('click', confirmarNotificacion);
+    }
+});
+
+function abrirModalNotificar(id) {
+    const datos = JSON.parse(localStorage.getItem('productosReponer')) || [];
+    const item = datos.find(d => d.id === id);
+    if (!item) return;
+
+    idProductoPorNotificar = id; // Guardamos el ID en memoria
+    
+    // Generar fecha actual en formato peruano
+    const fechaHoy = new Date().toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' });
+    
+    // Plantilla formal del documento legal/comercial
+    const documentoFormal = `ORDEN DE REPOSICIÓN DE INVENTARIO
+
+Fecha: ${fechaHoy}
+A: Departamento de Ventas y Despacho, ${item.proveedor}
+De: Área de Compras - Grupo San José
+Asunto: Solicitud formal de reposición de stock - ${item.producto}
+
+Estimados señores de ${item.proveedor},
+
+Por medio de la presente, nos dirigimos a ustedes para solicitar formalmente la pronta reposición de inventario correspondiente al producto "${item.producto}".
+
+De acuerdo con nuestros registros actuales de trazabilidad, el nivel de stock ha descendido a ${item.stock} unidades, alcanzando el umbral mínimo establecido para garantizar nuestra continuidad operativa. 
+
+Solicitamos amablemente procesar esta orden a la brevedad y remitirnos la confirmación de recepción de este documento, así como la fecha estimada de entrega en nuestro almacén central.
+
+Atentamente,
+
+___________________________
+Ana María
+Jefa de Operaciones
+Grupo San José`;
+
+    // Inyectar el texto en el textarea
+    document.getElementById('textoNotificacion').value = documentoFormal;
+    
+    // Instanciar y mostrar el modal usando la API de Bootstrap
+    const modalEl = document.getElementById('modalNotificarProveedor');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+function confirmarNotificacion() {
+    if (!idProductoPorNotificar) return;
+    
     let datos = JSON.parse(localStorage.getItem('productosReponer'));
-    const index = datos.findIndex(d => d.id === id);
+    const index = datos.findIndex(d => d.id === idProductoPorNotificar);
+    
     if (index !== -1) {
+        // Actualizar el estado
         datos[index].estado = 'Notificado';
         localStorage.setItem('productosReponer', JSON.stringify(datos));
-        renderTablaReponer(); // Re-render reactivo
+        
+        // Re-renderizar la tabla para que el botón cambie a gris y diga "Notificado"
+        renderTablaReponer();
     }
+    
+    // Cerrar el modal
+    const modalEl = document.getElementById('modalNotificarProveedor');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal.hide();
+    
+    // Limpiar la variable temporal
+    idProductoPorNotificar = null;
 }
 
 function generarReclamo(id) {
