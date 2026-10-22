@@ -1,0 +1,443 @@
+/* =========================================================
+   A. VARIABLES CSS (:root) - Paleta basada en rojo
+   ========================================================= */
+:root {
+    /* Escala de rojos (de muy suave a oscuro) */
+    --red-50: #fff5f5;
+    /* fondos muy suaves */
+    --red-100: #fde8e8;
+    /* hover suave */
+    --red-200: #f9cfcf;
+    /* bordes y estados activos suaves */
+    --red-300: #f2a5a5;
+    --red-400: #e87373;
+    --red-500: #d94848;
+    /* acento principal */
+    --red-600: #c0392b;
+    /* botones / hover de acento */
+    --red-700: #9f2d22;
+    /* texto sobre fondos claros */
+    --red-800: #7a221a;
+    --red-900: #4a140f;
+
+    /* Neutros */
+    --bg-app: #f7f4f4;
+    /* fondo general, gris cálido */
+    --surface: #ffffff;
+    /* tarjetas, navbar, sidebar */
+    --text: #2b2222;
+    --text-muted: #7b6c6c;
+    --border: #eadfdf;
+
+    /* Medidas de layout */
+    --navbar-h: 64px;
+    --sidebar-w: 250px;
+    --sidebar-w-collapsed: 76px;
+    --radius: 12px;
+    --transition: 0.3s cubic-bezier(.4, 0, .2, 1);
+    --shadow-sm: 0 1px 3px rgba(74, 20, 15, .08);
+}
+
+/* =========================================================
+   B. BASE
+   ========================================================= */
+body {
+    background: var(--bg-app);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    padding-top: var(--navbar-h);
+    /* espacio para la navbar fija */
+}
+
+/* =========================================================
+   C. LAYOUT: NAVBAR, SIDEBAR Y CONTENIDO
+   ========================================================= */
+
+/* ---- C1. Top Navbar fija ---- */
+.app-navbar {
+    position: fixed;
+    inset: 0 0 auto 0;
+    /* top:0; left:0; right:0 */
+    height: var(--navbar-h);
+    z-index: 1040;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    color: var(--text);
+}
+
+.brand-logo {
+    display: grid;
+    place-items: center;
+    width: 150px;
+}
+
+/* Botones de ícono (hamburguesa, notificaciones) */
+.icon-btn {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--red-700);
+    font-size: 1.3rem;
+    transition: background var(--transition), color var(--transition);
+}
+
+.icon-btn:hover {
+    background: var(--red-100);
+    color: var(--red-600);
+}
+
+.icon-btn:focus-visible {
+    outline: 2px solid var(--red-400);
+    outline-offset: 2px;
+}
+
+/* Punto rojo de notificación */
+.notif-dot {
+    position: absolute;
+    top: 9px;
+    right: 10px;
+    width: 9px;
+    height: 9px;
+    background: var(--red-500);
+    border: 2px solid var(--surface);
+    border-radius: 50%;
+}
+
+/* Saludo de bienvenida */
+.welcome-pill {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .35rem .9rem;
+    background: var(--red-50);
+    border: 1px solid var(--red-200);
+    border-radius: 999px;
+    color: var(--red-700);
+    font-weight: 500;
+    font-size: .9rem;
+}
+
+.welcome-pill i {
+    font-size: 1.3rem;
+}
+
+/* ---- C2. Sidebar ---- */
+.app-sidebar {
+    position: fixed;
+    top: var(--navbar-h);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-w);
+    z-index: 1030;
+    padding: 1rem .75rem;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-x: hidden;
+    transition: width var(--transition), transform var(--transition);
+}
+
+.nav-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    height: 46px;
+    padding: 0 .9rem;
+    border-radius: 10px;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background var(--transition), color var(--transition), padding var(--transition);
+}
+
+.nav-item i {
+    font-size: 1.25rem;
+    min-width: 24px;
+    text-align: center;
+    color: var(--red-500);
+}
+
+/* Hover elegante: fondo rojo suave, sin saturar */
+.nav-item:hover {
+    background: var(--red-100);
+    color: var(--red-700);
+}
+
+/* Opción activa: acento rojo lateral */
+.nav-item.active {
+    background: var(--red-50);
+    color: var(--red-700);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--red-600);
+}
+
+/* Etiquetas: se desvanecen al colapsar */
+.nav-label {
+    opacity: 1;
+    transition: opacity var(--transition);
+}
+
+/* ---- Estado colapsado (escritorio) ---- */
+body.sidebar-collapsed .app-sidebar {
+    width: var(--sidebar-w-collapsed);
+}
+
+body.sidebar-collapsed .nav-label {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ---- C3. Contenido principal ---- */
+.app-main {
+    margin-left: var(--sidebar-w);
+    padding: 1.75rem;
+    transition: margin-left var(--transition);
+}
+
+body.sidebar-collapsed .app-main {
+    margin-left: var(--sidebar-w-collapsed);
+}
+
+/* Fondo oscuro para móvil */
+.sidebar-backdrop {
+    position: fixed;
+    inset: var(--navbar-h) 0 0 0;
+    z-index: 1020;
+    background: rgba(74, 20, 15, .35);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition), visibility var(--transition);
+}
+
+/* ---- Responsive: en pantallas < 992px el sidebar es off-canvas ---- */
+@media (max-width: 991.98px) {
+    .app-sidebar {
+        transform: translateX(-100%);
+        width: var(--sidebar-w);
+        box-shadow: 4px 0 16px rgba(0, 0, 0, .12);
+    }
+
+    .app-main,
+    body.sidebar-collapsed .app-main {
+        margin-left: 0;
+        padding: 1.25rem 1rem;
+    }
+
+    /* En móvil se ignora el estado "collapsed" de escritorio */
+    body.sidebar-collapsed .app-sidebar {
+        width: var(--sidebar-w);
+    }
+
+    body.sidebar-collapsed .nav-label {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    body.sidebar-open .app-sidebar {
+        transform: translateX(0);
+    }
+
+    body.sidebar-open .sidebar-backdrop {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* =========================================================
+   D. COMPONENTES COMUNES
+   ========================================================= */
+.page-title {
+    font-size: clamp(1.3rem, 2.5vw, 1.9rem);
+    font-weight: 700;
+    margin: 0;
+}
+
+.meta-text {
+    font-size: .85rem;
+    color: var(--text-muted);
+}
+
+.card-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 1.25rem;
+}
+
+/* Botones de marca (sobrescriben el estilo de Bootstrap) */
+.btn-brand {
+    background: var(--red-600);
+    border-color: var(--red-600);
+    color: var(--surface);
+    transition: background var(--transition), transform .15s;
+}
+
+.btn-brand:hover,
+.btn-brand:focus {
+    background: var(--red-700);
+    border-color: var(--red-700);
+    color: var(--surface);
+}
+
+.btn-brand:active {
+    transform: scale(.98);
+}
+
+.btn-brand:disabled {
+    background: var(--red-600);
+    border-color: var(--red-600);
+    color: var(--surface);
+    opacity: .45;
+}
+
+.btn-outline-brand {
+    background: var(--surface);
+    border: 1px solid var(--red-300);
+    color: var(--red-700);
+    transition: background var(--transition), border-color var(--transition);
+}
+
+.btn-outline-brand:hover,
+.btn-outline-brand:focus {
+    background: var(--red-100);
+    border-color: var(--red-500);
+    color: var(--red-800);
+}
+
+/* Botón de texto (por ejemplo "Cancelar" en el modal de traslado) */
+.btn-link-brand {
+    background: transparent;
+    border: 0;
+    color: var(--red-700);
+    font-weight: 500;
+    text-decoration: none;
+    transition: background var(--transition), color var(--transition);
+}
+
+.btn-link-brand:hover,
+.btn-link-brand:focus {
+    background: var(--red-50);
+    color: var(--red-800);
+}
+
+/* Campos de formulario con foco en rojo suave */
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+    border-color: var(--red-400);
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--red-500) 25%, transparent);
+}
+
+.input-group-text {
+    background: var(--red-50);
+    border-color: var(--border);
+    color: var(--red-700);
+}
+
+.form-label {
+    font-weight: 600;
+    font-size: .95rem;
+}
+
+/* Casillas marcadas en rojo */
+.form-check-input:checked {
+    background-color: var(--red-600);
+    border-color: var(--red-600);
+}
+
+/* Validación de formularios con la paleta roja */
+.form-control.is-invalid,
+.form-select.is-invalid {
+    border-color: var(--red-600);
+}
+
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus {
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--red-500) 25%, transparent);
+}
+
+.invalid-feedback {
+    color: var(--red-700);
+}
+
+/* Tablas */
+.app-table {
+    --bs-table-bg: transparent;
+}
+
+.app-table thead th {
+    background: var(--red-50);
+    color: var(--red-800);
+    font-weight: 600;
+    font-size: .85rem;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--red-200);
+}
+
+.app-table tbody tr:hover {
+    background: var(--red-50);
+}
+
+/* Modales */
+.modal-content {
+    border: 0;
+    border-radius: var(--radius);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--red-200);
+}
+
+.modal-footer {
+    border-top: 1px solid var(--red-200);
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.btn-close:focus {
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--red-500) 25%, transparent);
+}
+
+/* Mensajes dentro de los modales (advertencia y error) */
+.msg-box {
+    padding: .75rem 1rem;
+    border: 1px solid;
+    border-radius: 10px;
+    font-size: .9rem;
+}
+
+.msg-warn {
+    background: var(--red-50);
+    border-color: var(--red-200);
+    color: var(--red-700);
+}
+
+.msg-error {
+    background: var(--red-100);
+    border-color: var(--red-300);
+    color: var(--red-800);
+}
