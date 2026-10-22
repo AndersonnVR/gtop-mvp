@@ -140,19 +140,38 @@ function inicializarDatos() {
 // 2. RENDERIZADO DE TABLAS
 // ==========================================
 
+// ==========================================
+// CONFIGURACIÓN DE PAGINACIÓN GLOBAL
+// ==========================================
+let paginaActualReponer = 1;
+let paginaActualPedidos = 1;
+const FILAS_POR_PAGINA = 6;
+
+// ==========================================
+// RENDERIZADO DE TABLAS CON PAGINACIÓN
+// ==========================================
+
 function renderTablaReponer() {
     const tbody = document.querySelector('#tablaReponer tbody');
-    const datos = JSON.parse(localStorage.getItem('productosReponer')) || [];
+    const datosTotales = JSON.parse(localStorage.getItem('productosReponer')) || [];
     
-    tbody.innerHTML = ''; // Limpiar tabla
+    // Cálculo de índices para segmentar el array
+    const totalPaginas = Math.ceil(datosTotales.length / FILAS_POR_PAGINA) || 1;
+    if (paginaActualReponer > totalPaginas) paginaActualReponer = totalPaginas;
+    
+    const inicio = (paginaActualReponer - 1) * FILAS_POR_PAGINA;
+    const fin = inicio + FILAS_POR_PAGINA;
+    const datosPagina = datosTotales.slice(inicio, fin);
 
-    if (datos.length === 0) {
-        tbody.innerHTML = `<tr class="table-empty"><td colspan="4">No hay productos próximos a reponer.</td></tr>`;
+    tbody.innerHTML = '';
+
+    if (datosTotales.length === 0) {
+        tbody.innerHTML = `<tr class="table-empty"><td colspan="4" class="text-center py-4 text-muted">No hay productos próximos a reponer.</td></tr>`;
+        actualizarControlesPaginacion(0, 1, 1, 'paginacionReponer', 'infoReponer', 'reponer');
         return;
     }
 
-    datos.forEach(item => {
-        // Lógica visual para el botón de acción según tu diseño
+    datosPagina.forEach(item => {
         const btnClass = item.estado === 'Notificar' ? 'btn-brand' : 'btn-light text-muted border';
         const btnDisabled = item.estado === 'Notificado' ? 'disabled' : '';
 
@@ -162,27 +181,37 @@ function renderTablaReponer() {
             <td>${item.stock}</td>
             <td>${item.proveedor}</td>
             <td class="text-center">
-                <button class="btn btn-sm ${btnClass} rounded-pill px-3" ${btnDisabled} onclick="abrirModalNotificar(${item.id})"">
+                <button class="btn btn-sm ${btnClass} rounded-pill px-3" ${btnDisabled} onclick="abrirModalNotificar(${item.id})">
                     ${item.estado}
                 </button>
             </td>
         `;
         tbody.appendChild(tr);
     });
+
+    actualizarControlesPaginacion(datosTotales.length, paginaActualReponer, totalPaginas, 'paginacionReponer', 'infoReponer', 'reponer');
 }
 
 function renderTablaPedidos() {
     const tbody = document.querySelector('#tablaPedidos tbody');
-    const datos = JSON.parse(localStorage.getItem('pedidos')) || [];
+    const datosTotales = JSON.parse(localStorage.getItem('pedidos')) || [];
     
+    const totalPaginas = Math.ceil(datosTotales.length / FILAS_POR_PAGINA) || 1;
+    if (paginaActualPedidos > totalPaginas) paginaActualPedidos = totalPaginas;
+    
+    const inicio = (paginaActualPedidos - 1) * FILAS_POR_PAGINA;
+    const fin = inicio + FILAS_POR_PAGINA;
+    const datosPagina = datosTotales.slice(inicio, fin);
+
     tbody.innerHTML = '';
 
-    if (datos.length === 0) {
-        tbody.innerHTML = `<tr class="table-empty"><td colspan="7">No hay pedidos registrados.</td></tr>`;
+    if (datosTotales.length === 0) {
+        tbody.innerHTML = `<tr class="table-empty"><td colspan="7" class="text-center py-4 text-muted">No hay pedidos registrados.</td></tr>`;
+        actualizarControlesPaginacion(0, 1, 1, 'paginacionPedidos', 'infoPedidos', 'pedidos');
         return;
     }
 
-    datos.forEach(pedido => {
+    datosPagina.forEach(pedido => {
         const btnClass = pedido.estado === 'Generar reclamo' ? 'btn-outline-warning text-dark border-warning' : 'btn-light text-muted border';
         const btnDisabled = pedido.estado === 'Reclamado' ? 'disabled' : '';
 
@@ -191,12 +220,9 @@ function renderTablaPedidos() {
             <td>${pedido.id}</td>
             <td>${pedido.proveedor}</td>
             <td>${pedido.fechaProg}</td>
-            
-            <!-- Celdas Editables -->
             <td class="editable-cell" onclick="editarCelda(this, ${pedido.id}, 'fechaEnt')">${pedido.fechaEnt}</td>
             <td class="editable-cell" onclick="editarCelda(this, ${pedido.id}, 'completitud')">${pedido.completitud}</td>
             <td class="editable-cell" onclick="editarCelda(this, ${pedido.id}, 'puntualidad')">${pedido.puntualidad}</td>
-            
             <td class="text-center">
                 <button class="btn btn-sm ${btnClass} rounded-pill px-3" ${btnDisabled} onclick="abrirModalReclamo(${pedido.id})">
                     ${pedido.estado}
@@ -205,7 +231,58 @@ function renderTablaPedidos() {
         `;
         tbody.appendChild(tr);
     });
+
+    actualizarControlesPaginacion(datosTotales.length, paginaActualPedidos, totalPaginas, 'paginacionPedidos', 'infoPedidos', 'pedidos');
 }
+
+// ==========================================
+// LÓGICA DEL COMPONENTE DE PAGINACIÓN
+// ==========================================
+
+function actualizarControlesPaginacion(totalItems, paginaActual, totalPaginas, idContenedorPaginacion, idContenedorInfo, tipoTabla) {
+    const ul = document.getElementById(idContenedorPaginacion);
+    const info = document.getElementById(idContenedorInfo);
+    
+    if (!ul || !info) return;
+
+    ul.innerHTML = '';
+
+    if (totalPaginas <= 1) return; // Ocultar paginación si solo hay 1 página
+
+    // Botón Anterior
+    ul.innerHTML += `
+        <li class="page-item ${paginaActual === 1 ? 'disabled' : ''}">
+            <button class="page-link" onclick="cambiarPagina('${tipoTabla}', ${paginaActual - 1})">Anterior</button>
+        </li>
+    `;
+
+    // Números de Página
+    for (let i = 1; i <= totalPaginas; i++) {
+        ul.innerHTML += `
+            <li class="page-item ${i === paginaActual ? 'active' : ''}">
+                <button class="page-link" onclick="cambiarPagina('${tipoTabla}', ${i})">${i}</button>
+            </li>
+        `;
+    }
+
+    // Botón Siguiente
+    ul.innerHTML += `
+        <li class="page-item ${paginaActual === totalPaginas ? 'disabled' : ''}">
+            <button class="page-link" onclick="cambiarPagina('${tipoTabla}', ${paginaActual + 1})">Siguiente</button>
+        </li>
+    `;
+}
+
+// Enrutador para manejar los clics en la paginación según la tabla
+window.cambiarPagina = function(tipoTabla, nuevaPagina) {
+    if (tipoTabla === 'reponer') {
+        paginaActualReponer = nuevaPagina;
+        renderTablaReponer();
+    } else if (tipoTabla === 'pedidos') {
+        paginaActualPedidos = nuevaPagina;
+        renderTablaPedidos();
+    }
+};
 
 // ==========================================
 // 9. EDICIÓN EN LÍNEA (INLINE EDITING)
@@ -350,6 +427,9 @@ function confirmarReclamo() {
         
         // Re-renderizar la tabla para actualizar el estado visual del botón
         renderTablaPedidos();
+
+        //LA NOTIFICACION
+        agregarNotificacion(`Se ha generado un reclamo formal a <strong>${datos[index].proveedor}</strong> por incumplimiento en el pedido #${datos[index].id}.`);
     }
     
     // Cerrar el modal
@@ -434,6 +514,9 @@ function confirmarNotificacion() {
         
         // Re-renderizar la tabla para que el botón cambie a gris y diga "Notificado"
         renderTablaReponer();
+
+        //LA NOTIFICACION
+        agregarNotificacion(`Se le ha notificado al proveedor <strong>${datos[index].proveedor}</strong> para reponer <strong>${datos[index].producto}</strong>.`);
     }
     
     // Cerrar el modal
@@ -725,9 +808,9 @@ function renderGraficoPrecios(productoSeleccionado, datosTotales) {
     const labels = cotizaciones.map(item => item.proveedor);
     const dataValues = cotizaciones.map(item => item.precio);
 
-    // 3. Asignar colores: Azul corporativo por defecto, Rojo acento (#c0392b) para el más barato
+    // 3. Asignar colores: Azul corporativo por defecto, Rojo acento (#C0392B) para el más barato
     const backgroundColors = dataValues.map((precio, index) => 
-        index === 0 ? '#c0392b' : '#3b7b9b' // El índice 0 siempre será el más barato por el sort()
+        index === 0 ? '#C0392B' : '#FFC9C9' // El índice 0 siempre será el más barato por el sort()
     );
 
     if (preciosChartInstance) {
@@ -901,9 +984,100 @@ function initFormularioCompra() {
         // Actualizar visualmente la tabla inferior
         renderTablaPedidos();
 
+        agregarNotificacion(`Se ha generado exitosamente una orden de compra por ${cantidadStr} und. de <strong>${productoStr}</strong> a <strong>${proveedorNombre}</strong>.`);
+
         // Limpiar formulario y cerrar modal
         form.reset();
         form.classList.remove('was-validated');
         bootstrap.Modal.getInstance(modalEl).hide();
     });
+}
+
+// ==========================================
+// 10. SISTEMA DE NOTIFICACIONES (NAVBAR)
+// ==========================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    inicializarNotificaciones();
+});
+
+function inicializarNotificaciones() {
+    // 1. Datos de prueba si el localStorage está vacío
+    if (!localStorage.getItem('notificaciones')) {
+        const mockNotifs = [
+            { id: 1, texto: "Se le ha notificado al proveedor Coca-Cola para reponer Inca Kola 1.5L.", fecha: new Date().toISOString(), leida: false },
+            { id: 2, texto: "Reclamo legal generado para Alicorp por incumplimiento del pedido #250.", fecha: new Date(Date.now() - 3600000).toISOString(), leida: false }
+        ];
+        localStorage.setItem('notificaciones', JSON.stringify(mockNotifs));
+    }
+    renderNotificaciones();
+}
+
+function renderNotificaciones() {
+    const notifs = JSON.parse(localStorage.getItem('notificaciones')) || [];
+    const notifBody = document.getElementById('notifBody');
+    const badge = document.getElementById('notifBadge');
+    
+    if (!notifBody || !badge) return;
+
+    notifBody.innerHTML = '';
+    
+    // Contar no leídas
+    const noLeidas = notifs.filter(n => !n.leida).length;
+
+    // Actualizar badge visual
+    if (noLeidas > 0) {
+        badge.textContent = noLeidas > 99 ? '99+' : noLeidas;
+        badge.style.display = 'block';
+    } else {
+        badge.style.display = 'none';
+    }
+
+    // Renderizar la lista
+    if (notifs.length === 0) {
+        notifBody.innerHTML = `<div class="p-4 text-center text-muted" style="font-size: 0.85rem;">No tienes notificaciones recientes.</div>`;
+        return;
+    }
+
+    notifs.forEach(notif => {
+        // Formatear la fecha para que sea legible (ej. "10/10/2026, 14:30")
+        const fechaFormateada = new Date(notif.fecha).toLocaleString('es-PE', { 
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit'
+        });
+
+        const div = document.createElement('div');
+        div.className = `notif-item ${!notif.leida ? 'notif-unread' : ''}`;
+        div.innerHTML = `
+            ${notif.texto}
+            <span class="notif-time"><i class="bi bi-clock me-1"></i>${fechaFormateada}</span>
+        `;
+        notifBody.appendChild(div);
+    });
+}
+
+// Función global para inyectar notificaciones desde cualquier parte del código
+function agregarNotificacion(texto) {
+    const notifs = JSON.parse(localStorage.getItem('notificaciones')) || [];
+    
+    const nuevaNotif = {
+        id: Date.now(),
+        texto: texto,
+        fecha: new Date().toISOString(),
+        leida: false
+    };
+
+    notifs.unshift(nuevaNotif); // Agregar al inicio
+    
+    // Mantener solo las últimas 30 notificaciones para no saturar el LocalStorage
+    if (notifs.length > 30) notifs.pop();
+
+    localStorage.setItem('notificaciones', JSON.stringify(notifs));
+    renderNotificaciones();
+}
+
+function marcarNotificacionesLeidas() {
+    let notifs = JSON.parse(localStorage.getItem('notificaciones')) || [];
+    notifs = notifs.map(n => ({ ...n, leida: true }));
+    localStorage.setItem('notificaciones', JSON.stringify(notifs));
+    renderNotificaciones();
 }

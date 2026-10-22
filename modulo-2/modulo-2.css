@@ -465,3 +465,66 @@ body.sidebar-collapsed .app-main {
     padding: 0.15rem 0.35rem;
     font-size: 0.9rem;
 }
+
+/* ==========================================
+   NOTIFICACIONES DROPDOWN
+   ========================================== */
+.notif-item {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+    white-space: normal; /* Permite que textos largos bajen a otra línea */
+    color: var(--text);
+    transition: background-color var(--transition);
+}
+
+.notif-item:last-child {
+    border-bottom: none;
+}
+
+/* Estado no leído (fondo rojo muy suave) */
+.notif-unread {
+    background-color: var(--red-50);
+    font-weight: 500;
+}
+
+.notif-time {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.35rem;
+}
+
+/* ==========================================
+   1. PAGINACIÓN CON COLORES DE MARCA
+   ========================================== */
+/* Sobrescribe las variables nativas de Bootstrap para eliminar el azul */
+.pagination {
+    --bs-pagination-color: var(--red-700);
+    --bs-pagination-hover-color: var(--red-800);
+    --bs-pagination-hover-bg: var(--red-100);
+    --bs-pagination-hover-border-color: var(--red-200);
+    --bs-pagination-focus-color: var(--red-800);
+    --bs-pagination-focus-bg: var(--red-100);
+    --bs-pagination-focus-box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--red-500) 25%, transparent);
+    --bs-pagination-active-bg: var(--red-600);
+    --bs-pagination-active-border-color: var(--red-600);
+    --bs-pagination-active-color: var(--surface);
+    --bs-pagination-border-color: var(--border);
+    --bs-pagination-disabled-color: var(--text-muted);
+}
+
+/* ==========================================
+   2. TAMAÑO FIJO PARA TABLAS PAGINADAS
+   ========================================== */
+/* Evita que la tabla se encoja en la última página si hay pocos registros */
+.table-responsive {
+    min-height: 250px; /* Ajusta este valor si necesitas más o menos espacio (aprox. 6 filas + cabecera) */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Asegura que la tabla ocupe todo el espacio disponible dentro del contenedor fijo */
+.table-responsive .table {
+    margin-bottom: auto; 
+}

@@ -32,11 +32,28 @@
         </div>
 
         <div class="d-flex align-items-center gap-2 gap-md-3">
-            <!-- Ícono de notificaciones con indicador -->
-            <button class="icon-btn position-relative" type="button" aria-label="Notificaciones">
-                <i class="bi bi-bell"></i>
-                <span class="notif-dot"></span>
-            </button>
+            <!-- Ícono de notificaciones con indicador y Dropdown -->
+            <div class="dropdown">
+                <button class="icon-btn position-relative" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificaciones">
+                    <i class="bi bi-bell"></i>
+                    <!-- Badge con el contador (oculto por defecto) -->
+                    <span class="position-absolute translate-middle badge rounded-pill bg-danger" id="notifBadge" style="font-size: 0.65rem; display: none;" style="top: -1; left: 80%;">
+                        0
+                    </span>
+                </button>
+                <!-- Lista desplegable de notificaciones -->
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm p-0" aria-labelledby="notifDropdown" id="notifList" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                    <!-- Cabecera del Dropdown -->
+                    <li class="notif-header d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+                        <span class="fw-bold mb-0" style="font-size: 0.9rem;">Notificaciones</span>
+                        <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="marcarNotificacionesLeidas()" style="font-size: 0.8rem;">Marcar leídas</button>
+                    </li>
+                    <!-- Contenedor dinámico -->
+                    <div id="notifBody">
+                        <!-- Las notificaciones se inyectan con JS -->
+                    </div>
+                </ul>
+            </div>
 
             <!-- Saludo de bienvenida -->
             <div class="welcome-pill">
@@ -82,8 +99,14 @@
        3. CONTENIDO PRINCIPAL
        ===================================================== -->
     <main class="app-main" role="main">
-        <div class="mb-4">
+        <div class="mb-4 d-flex justify-content-between">
             <h1 class="page-title">Trazabilidad de Proveedores y Órdenes de Compra</h1>
+            <div class="table-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <label for="sedeSelect" class="fw-semibold mb-0">Sede:</label>
+                    <select id="sedeSelect" class="form-select sede-select" aria-label="Seleccionar sede"></select>
+                </div>
+            </div>
         </div>
 
         <div class="row g-4">
@@ -126,7 +149,7 @@
                 <section class="card-panel">
                     <h2 class="panel-title mb-3">Productos Próximos a Reponer</h2>
                     <div class="table-responsive">
-                        <table class="table app-table align-middle mb-0" id="tablaReponer">
+                        <table class="table app-table align-middle mb-0" id="tablaReponer" style="height: 300px;">
                             <thead>
                                 <tr>
                                     <th>Producto</th>
@@ -139,6 +162,12 @@
                                 <!-- Renderizado por JS -->
                             </tbody>
                         </table>
+                        <div class="table-footer">
+                            <span id="infoReponer" class="meta-text text-muted" style="font-size: 0.85rem;"></span>
+                            <nav aria-label="Paginación de reponer">
+                                <ul id="paginacionReponer" class="pagination pagination-sm mb-0" style="display: flex;justify-content: center;margin-top: 2%;"></ul>
+                            </nav>
+                        </div>
                     </div>
                 </section>
 
@@ -158,7 +187,7 @@
                     </div>
                     
                     <div class="table-responsive">
-                        <table class="table app-table align-middle mb-0" id="tablaPedidos">
+                        <table class="table app-table align-middle mb-0" id="tablaPedidos" style="height: 300px;">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -174,6 +203,12 @@
                                 <!-- Renderizado por JS -->
                             </tbody>
                         </table>
+                        <div class="table-footer">
+                        <span id="infoPedidos" class="meta-text text-muted" style="font-size: 0.85rem;"></span>
+                        <nav aria-label="Paginación de pedidos">
+                            <ul id="paginacionPedidos" class="pagination pagination-sm mb-0" style="display: flex;justify-content: center;margin-top: 2%;"></ul>
+                        </nav>
+                    </div>
                     </div>
                 </section>
 
