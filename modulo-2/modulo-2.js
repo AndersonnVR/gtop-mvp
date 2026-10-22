@@ -1081,3 +1081,51 @@ function marcarNotificacionesLeidas() {
     localStorage.setItem('notificaciones', JSON.stringify(notifs));
     renderNotificaciones();
 }
+
+// ==========================================
+// 12. SELECTOR DE SEDES (MOCK PARA MVP)
+// ==========================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    initSelectorSedes();
+});
+
+function initSelectorSedes() {
+    const selectSede = document.getElementById('sedeSelect');
+    if (!selectSede) return;
+
+    // Poblar el selector
+    const sedes = [
+        { id: 'grau', nombre: 'Av. Grau' },
+        { id: 'panamericana', nombre: 'Panamericana' }
+    ];
+
+    selectSede.innerHTML = '';
+    sedes.forEach(sede => {
+        const option = document.createElement('option');
+        option.value = sede.id;
+        option.textContent = sede.nombre;
+        // Establecer Av. Grau por defecto
+        if (sede.id === 'grau') {
+            option.selected = true;
+        }
+        selectSede.appendChild(option);
+    });
+
+    // Escuchar el cambio para generar interacción visual sin romper la data
+    selectSede.addEventListener('change', (e) => {
+        const nombreSede = e.target.options[e.target.selectedIndex].text;
+        
+        // Disparar una notificación utilizando la función que creamos anteriormente
+        agregarNotificacion(`Cargando panel operativo de la sede <strong>${nombreSede}</strong> (Modo demostración unificado).`);
+        
+        // Opcional: Agregar un pequeño efecto visual a las tablas para simular que recargan
+        document.querySelectorAll('.table-responsive').forEach(tabla => {
+            tabla.style.opacity = '0.3';
+            setTimeout(() => {
+                tabla.style.opacity = '1';
+                tabla.style.transition = 'opacity 0.4s ease';
+            }, 400);
+        });
+    });
+}
