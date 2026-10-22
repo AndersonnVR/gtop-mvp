@@ -183,7 +183,6 @@ function renderTablaPedidos() {
     }
 
     datos.forEach(pedido => {
-        // Lógica visual para el botón de reclamo según tu diseño
         const btnClass = pedido.estado === 'Generar reclamo' ? 'btn-outline-warning text-dark border-warning' : 'btn-light text-muted border';
         const btnDisabled = pedido.estado === 'Reclamado' ? 'disabled' : '';
 
@@ -192,9 +191,12 @@ function renderTablaPedidos() {
             <td>${pedido.id}</td>
             <td>${pedido.proveedor}</td>
             <td>${pedido.fechaProg}</td>
-            <td>${pedido.fechaEnt}</td>
-            <td>${pedido.completitud}</td>
-            <td>${pedido.puntualidad}</td>
+            
+            <!-- Celdas Editables -->
+            <td class="editable-cell" onclick="editarCelda(this, ${pedido.id}, 'fechaEnt')">${pedido.fechaEnt}</td>
+            <td class="editable-cell" onclick="editarCelda(this, ${pedido.id}, 'completitud')">${pedido.completitud}</td>
+            <td class="editable-cell" onclick="editarCelda(this, ${pedido.id}, 'puntualidad')">${pedido.puntualidad}</td>
+            
             <td class="text-center">
                 <button class="btn btn-sm ${btnClass} rounded-pill px-3" ${btnDisabled} onclick="abrirModalReclamo(${pedido.id})">
                     ${pedido.estado}
@@ -203,6 +205,76 @@ function renderTablaPedidos() {
         `;
         tbody.appendChild(tr);
     });
+}
+
+// ==========================================
+// 9. EDICIÓN EN LÍNEA (INLINE EDITING)
+// ==========================================
+
+function editarCelda(tdElement, idPedido, campo) {
+    // Si la celda ya tiene un input (el usuario hizo doble clic), no hacemos nada
+    if (tdElement.querySelector('input')) return;
+
+    const valorActual = tdElement.textContent.trim();
+    let inputType = 'text';
+    let inputValue = valorActual === '-' ? '' : valorActual;
+
+    // Si es la fecha de entrega, preparamos un input tipo date
+    if (campo === 'fechaEnt') {
+        inputType = 'date';
+        // HTML5 Date requiere formato YYYY-MM-DD, así que convertimos desde DD/MM/YYYY
+        if (inputValue && inputValue.includes('/')) {
+            const partes = inputValue.split('/');
+            if (partes.length === 3) {
+                inputValue = `${partes[2]}-${partes[1]}-${partes[0]}`;
+            }
+        }
+    }
+
+    // Insertar el input dentro de la celda
+    tdElement.innerHTML = `<input type="${inputType}" class="form-control form-control-sm editable-input" value="${inputValue}">`;
+    
+    const inputElement = tdElement.querySelector('input');
+    inputElement.focus();
+
+    // Evento 1: Si el usuario hace clic fuera del input (pierde el foco), guardamos
+    inputElement.addEventListener('blur', function() {
+        guardarEdicionPedido(idPedido, campo, this.value, inputType);
+    });
+
+    // Evento 2: Si el usuario presiona Enter, guardamos
+    inputElement.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            this.blur(); // Disparar intencionalmente el blur para unificar la lógica
+        }
+    });
+}
+
+function guardarEdicionPedido(idPedido, campo, nuevoValor, inputType) {
+    let valorFinal = nuevoValor.trim();
+
+    // Si el usuario lo dejó vacío, ponemos el guion por defecto
+    if (!valorFinal) {
+        valorFinal = '-';
+    } else if (inputType === 'date') {
+        // Convertir de regreso de YYYY-MM-DD a DD/MM/YYYY para la visualización
+        const partes = valorFinal.split('-');
+        if (partes.length === 3) {
+            valorFinal = `${partes[2]}/${partes[1]}/${partes[0]}`;
+        }
+    }
+
+    // Actualizar el LocalStorage
+    let datos = JSON.parse(localStorage.getItem('pedidos')) || [];
+    const index = datos.findIndex(d => d.id === idPedido);
+    
+    if (index !== -1) {
+        datos[index][campo] = valorFinal;
+        localStorage.setItem('pedidos', JSON.stringify(datos));
+    }
+
+    // Re-renderizar la tabla para que el input desaparezca y quede el texto actualizado
+    renderTablaPedidos();
 }
 
 // ==========================================

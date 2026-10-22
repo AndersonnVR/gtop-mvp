@@ -441,3 +441,27 @@ body.sidebar-collapsed .app-main {
     border-color: var(--red-300);
     color: var(--red-800);
 }
+
+/* ==========================================
+   CELDAS EDITABLES EN TABLAS
+   ========================================== */
+.editable-cell {
+    cursor: pointer;
+    position: relative;
+    transition: background-color var(--transition);
+}
+
+/* Al pasar el mouse, le damos un fondo rojo muy suave y un borde punteado */
+.editable-cell:hover {
+    background-color: var(--red-50);
+    box-shadow: inset 0 0 0 1px var(--red-300);
+    border-radius: 4px;
+}
+
+/* El input temporal que aparece al hacer clic */
+.editable-input {
+    width: 100%;
+    min-width: 90px;
+    padding: 0.15rem 0.35rem;
+    font-size: 0.9rem;
+}
