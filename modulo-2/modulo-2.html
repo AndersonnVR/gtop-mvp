@@ -107,6 +107,13 @@
                     </select>
                     <div class="chart-box" style="height: 250px;">
                         <canvas id="preciosBarChart"></canvas>
+                        
+                        <!-- En tu layout principal, justo debajo del div con id="preciosBarChart" -->
+                        <div class="mt-4 text-end">
+                            <button class="btn btn-brand w-50" type="button" onclick="abrirModalCompra()" style="margin-top: 5%">
+                                <i class="bi bi-cart-plus me-2"></i>Comprar Producto
+                            </button>
+                        </div>
                     </div>
                 </section>
 
@@ -298,6 +305,58 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-brand" id="btnConfirmarReclamo">Reportar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Orden de Compra -->
+    <div class="modal fade" id="modalOrdenCompra" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Generar Orden de Compra</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formOrdenCompra" novalidate>
+                        <div class="mb-3">
+                            <label class="form-label">Producto</label>
+                            <input type="text" class="form-control bg-light" id="compraProducto" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Proveedor Seleccionado</label>
+                            <!-- Este select se llenará con los datos del comparador -->
+                            <select class="form-select" id="compraProveedor" required></select>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Precio Unitario</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">S/</span>
+                                    <input type="text" class="form-control bg-light" id="compraPrecioUnitario" readonly>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Cantidad</label>
+                                <input type="number" class="form-control" id="compraCantidad" min="1" required>
+                            </div>
+                        </div>
+                        <div class="row align-items-end">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Fecha Esperada</label>
+                                <input type="date" class="form-control" id="compraFecha" required>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label fw-bold">Total a Pagar</label>
+                                <input type="text" class="form-control bg-light text-success fw-bold" id="compraTotal" value="S/ 0.00" readonly>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" form="formOrdenCompra" class="btn btn-brand">Confirmar Compra</button>
                 </div>
             </div>
         </div>

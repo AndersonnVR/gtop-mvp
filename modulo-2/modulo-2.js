@@ -709,3 +709,129 @@ function renderGraficoPrecios(productoSeleccionado, datosTotales) {
         }
     });
 }
+
+// ==========================================
+// 8. FLUJO DE ORDEN DE COMPRA DESDE COMPARADOR
+// ==========================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    initFormularioCompra();
+    
+    // Listeners para hacer el cálculo del total reactivo
+    document.getElementById('compraProveedor')?.addEventListener('change', actualizarPrecioUnitario);
+    document.getElementById('compraCantidad')?.addEventListener('input', calcularTotalCompra);
+});
+
+function abrirModalCompra() {
+    const selectProducto = document.getElementById('selectProductoPrecio');
+    const productoSeleccionado = selectProducto.value;
+
+    if (!productoSeleccionado) {
+        alert("Por favor, seleccione un producto en el comparador primero.");
+        return;
+    }
+
+    // 1. Bloquear el input con el nombre del producto
+    document.getElementById('compraProducto').value = productoSeleccionado;
+
+    // 2. Extraer del LocalStorage solo las cotizaciones del producto seleccionado
+    const datosPrecios = JSON.parse(localStorage.getItem('catalogoPrecios')) || [];
+    const cotizaciones = datosPrecios.filter(item => item.producto === productoSeleccionado);
+    
+    // 3. Ordenar por precio para destacar la mejor opción de compra
+    cotizaciones.sort((a, b) => a.precio - b.precio);
+
+    // 4. Llenar el select de proveedores dinámicamente
+    const selectProveedor = document.getElementById('compraProveedor');
+    selectProveedor.innerHTML = '';
+    
+    cotizaciones.forEach((cot, index) => {
+        const option = document.createElement('option');
+        option.value = cot.precio; // Guardamos el precio en el 'value' para multiplicar fácilmente
+        option.dataset.nombre = cot.proveedor; // Guardamos el nombre en un 'data-attribute'
+        option.textContent = `${cot.proveedor} (S/ ${cot.precio.toFixed(2)})`;
+        
+        if(index === 0) option.selected = true; // Preselecciona el más barato
+        selectProveedor.appendChild(option);
+    });
+
+    // 5. Reiniciar inputs del formulario
+    document.getElementById('compraCantidad').value = '';
+    document.getElementById('compraTotal').value = 'S/ 0.00';
+    document.getElementById('compraFecha').value = '';
+    actualizarPrecioUnitario(); 
+
+    // 6. Abrir Modal
+    const modalEl = document.getElementById('modalOrdenCompra');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+function actualizarPrecioUnitario() {
+    const selectProveedor = document.getElementById('compraProveedor');
+    const inputPrecio = document.getElementById('compraPrecioUnitario');
+    
+    if (selectProveedor.options.length > 0) {
+        const precio = parseFloat(selectProveedor.value);
+        inputPrecio.value = precio.toFixed(2);
+        calcularTotalCompra(); // Recalcular total si el usuario cambia de proveedor
+    }
+}
+
+function calcularTotalCompra() {
+    const precio = parseFloat(document.getElementById('compraPrecioUnitario').value) || 0;
+    const cantidad = parseInt(document.getElementById('compraCantidad').value) || 0;
+    const total = precio * cantidad;
+    document.getElementById('compraTotal').value = `S/ ${total.toFixed(2)}`;
+}
+
+function initFormularioCompra() {
+    const form = document.getElementById('formOrdenCompra');
+    const modalEl = document.getElementById('modalOrdenCompra');
+
+    if (!form) return;
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Validación de campos vacíos manejada por Bootstrap
+        if (!this.checkValidity()) {
+            e.stopPropagation();
+            this.classList.add('was-validated');
+            return;
+        }
+
+        // Obtener el nombre del proveedor desde el dataset de la opción seleccionada
+        const selectProveedor = document.getElementById('compraProveedor');
+        const proveedorNombre = selectProveedor.options[selectProveedor.selectedIndex].dataset.nombre;
+        
+        // Formatear la fecha (de YYYY-MM-DD del input nativo a DD/MM/YYYY para tu tabla)
+        const fechaInput = document.getElementById('compraFecha').value;
+        const partesFecha = fechaInput.split('-');
+        const fechaFormateada = `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}`;
+
+        // Crear el nuevo registro para la Tabla de Pedidos
+        const nuevaOrden = {
+            id: Math.floor(Math.random() * 900) + 100, // Generar un ID ficticio de 3 dígitos
+            proveedor: proveedorNombre,
+            fechaProg: fechaFormateada,
+            fechaEnt: "-", // Pendiente de entrega
+            completitud: "En proceso",
+            puntualidad: "-",
+            estado: "Generar reclamo"
+        };
+
+        // Guardar en LocalStorage
+        const pedidos = JSON.parse(localStorage.getItem('pedidos')) || [];
+        pedidos.unshift(nuevaOrden); // Agregamos al principio de la tabla
+        localStorage.setItem('pedidos', JSON.stringify(pedidos));
+
+        // Actualizar visualmente la tabla inferior
+        renderTablaPedidos();
+
+        // Limpiar formulario y cerrar modal
+        form.reset();
+        form.classList.remove('was-validated');
+        bootstrap.Modal.getInstance(modalEl).hide();
+    });
+}
