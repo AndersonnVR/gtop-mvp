@@ -196,13 +196,96 @@ function renderTablaPedidos() {
             <td>${pedido.completitud}</td>
             <td>${pedido.puntualidad}</td>
             <td class="text-center">
-                <button class="btn btn-sm ${btnClass} rounded-pill px-3" ${btnDisabled} onclick="generarReclamo(${pedido.id})">
+                <button class="btn btn-sm ${btnClass} rounded-pill px-3" ${btnDisabled} onclick="abrirModalReclamo(${pedido.id})">
                     ${pedido.estado}
                 </button>
             </td>
         `;
         tbody.appendChild(tr);
     });
+}
+
+// ==========================================
+// 7. LÓGICA DE RECLAMOS LEGALES A PROVEEDORES
+// ==========================================
+
+let idPedidoPorReclamar = null;
+
+// Escuchar el clic del botón de confirmar en el modal de reclamos
+document.addEventListener('DOMContentLoaded', () => {
+    const btnConfirmarReclamo = document.getElementById('btnConfirmarReclamo');
+    if (btnConfirmarReclamo) {
+        btnConfirmarReclamo.addEventListener('click', confirmarReclamo);
+    }
+});
+
+function abrirModalReclamo(id) {
+    const datos = JSON.parse(localStorage.getItem('pedidos')) || [];
+    const pedido = datos.find(d => d.id === id);
+    if (!pedido) return;
+
+    idPedidoPorReclamar = id;
+    
+    // Fecha actual para la emisión del documento
+    const fechaHoy = new Date().toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' });
+    
+    // Redacción formal y legal del reclamo
+    const documentoLegal = `AVISO DE INCUMPLIMIENTO DE CONTRATO Y RECLAMO FORMAL
+
+Fecha: ${fechaHoy}
+A: Representante Legal / Área de Despachos de ${pedido.proveedor}
+De: Departamento Legal y Compras - Grupo San José
+Asunto: Incumplimiento de orden de compra #${pedido.id}
+
+Por medio del presente documento, dejamos constancia formal del incumplimiento en las condiciones de entrega de la Orden de Compra #${pedido.id}, lo cual constituye una violación directa a la "Cláusula de Cumplimiento de Plazos y Entregas Completas" estipulada en nuestro contrato marco de suministro comercial.
+
+Detalle explícito de las infracciones constatadas:
+
+1. INPUNTUALIDAD EN LA ENTREGA:
+   - Nivel de retraso registrado:  ${pedido.puntualidad}
+
+2. INCOMPLETITUD DEL PEDIDO:
+   - Nivel de completitud (Entregado/Solicitado): ${pedido.completitud}
+
+Estas irregularidades generan un perjuicio directo en nuestra cadena de suministro y trazabilidad de inventario. Solicitamos una respuesta formal en un plazo no mayor a 48 horas con las medidas correctivas y la nota de crédito correspondiente a las penalidades del contrato.
+
+Atentamente,
+
+___________________________
+Ana María
+Jefa de Operaciones
+Grupo San José`;
+
+    // Inyectar el texto en el modal
+    document.getElementById('textoReclamo').value = documentoLegal;
+    
+    // Mostrar el modal
+    const modalEl = document.getElementById('modalGenerarReclamo');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+function confirmarReclamo() {
+    if (!idPedidoPorReclamar) return;
+    
+    let datos = JSON.parse(localStorage.getItem('pedidos'));
+    const index = datos.findIndex(d => d.id === idPedidoPorReclamar);
+    
+    if (index !== -1) {
+        // Actualizar el estado en LocalStorage
+        datos[index].estado = 'Reclamado';
+        localStorage.setItem('pedidos', JSON.stringify(datos));
+        
+        // Re-renderizar la tabla para actualizar el estado visual del botón
+        renderTablaPedidos();
+    }
+    
+    // Cerrar el modal
+    const modalEl = document.getElementById('modalGenerarReclamo');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal.hide();
+    
+    idPedidoPorReclamar = null;
 }
 
 // ==========================================
