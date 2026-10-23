@@ -1,76 +1,7 @@
 /* =========================================================
-   SECCIÓN 1. SIDEBAR COLAPSABLE
-   (La navegación entre módulos se hace con enlaces normales)
-   ========================================================= */
-(function () {
-    'use strict';
-
-    // ---------- Referencias al DOM ----------
-    const body = document.body;
-    const toggleBtn = document.getElementById('sidebarToggle');
-    const backdrop = document.getElementById('sidebarBackdrop');
-
-    const MOBILE_QUERY = window.matchMedia('(max-width: 991.98px)');
-    const STORAGE_KEY = 'sidebarCollapsed';
-
-    // ---------- Utilidades ----------
-    const isMobile = () => MOBILE_QUERY.matches;
-
-    // Actualiza el atributo ARIA según el estado visible del menú
-    function updateAria() {
-        const expanded = isMobile()
-            ? body.classList.contains('sidebar-open')
-            : !body.classList.contains('sidebar-collapsed');
-        toggleBtn.setAttribute('aria-expanded', String(expanded));
-    }
-
-    // ---------- Expandir / colapsar ----------
-    function toggleSidebar() {
-        if (isMobile()) {
-            // Móvil: abre/cierra el panel superpuesto
-            body.classList.toggle('sidebar-open');
-        } else {
-            // Escritorio: alterna entre ancho completo y solo íconos
-            body.classList.toggle('sidebar-collapsed');
-            try {
-                localStorage.setItem(STORAGE_KEY, body.classList.contains('sidebar-collapsed'));
-            } catch (e) { /* localStorage no disponible: se ignora */ }
-        }
-        updateAria();
-    }
-
-    function closeMobileSidebar() {
-        body.classList.remove('sidebar-open');
-        updateAria();
-    }
-
-    // ---------- Restaurar preferencia guardada (solo escritorio) ----------
-    try {
-        if (localStorage.getItem(STORAGE_KEY) === 'true') {
-            body.classList.add('sidebar-collapsed');
-        }
-    } catch (e) { /* se ignora */ }
-    updateAria();
-
-    // ---------- Eventos ----------
-    toggleBtn.addEventListener('click', toggleSidebar);
-    backdrop.addEventListener('click', closeMobileSidebar);
-
-    // Tecla Escape cierra el menú en móvil
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && isMobile()) closeMobileSidebar();
-    });
-
-    // Al cambiar de móvil a escritorio, se limpia el estado superpuesto
-    MOBILE_QUERY.addEventListener('change', () => {
-        body.classList.remove('sidebar-open');
-        updateAria();
-    });
-})();
-
-
-/* =========================================================
-   SECCIÓN 2. MÓDULO 1: PRODUCTOS Y GANANCIAS
+   MÓDULO 1: PRODUCTOS Y GANANCIAS
+   (El sidebar, la campana de notificaciones y las utilidades comunes
+    viven en ../shared/app.js)
    Organización del código:
      2.1  Configuración
      2.2  Utilidades
@@ -90,30 +21,35 @@
        2.1 CONFIGURACIÓN
        --------------------------------------------------------- */
     const STORAGE_KEY = 'modulo1_productos_v1';  // datos del módulo (clave propia)
-    const SEDE_KEY = 'modulo1_sede_v1';          // última sede vista
-    const SEDES = ['Panamericana', 'Av. Grau'];  // sedes disponibles
+    const { SEDES } = AppConfig;                 // sedes disponibles (compartidas en toda la app)
     const CURRENCY = 'S/';                       // símbolo de moneda
     const LOCALE = 'es-PE';                      // formato de números
     const PAGE_SIZE = 10;                        // filas por página
     const MAX_TRANSFERS_LOG = 200;               // traslados que se conservan en el registro
     const MAX_SUGGESTIONS = 500;                 // sugerencias en el buscador del traslado
+    const MAX_BRAND_LENGTH = 60;                 // NUEVO: Campo Marca -> largo máximo (igual que el maxlength del input)
 
     // Columnas de la plantilla. "aliases" permite reconocer encabezados parecidos al importar.
     // El margen de ganancia no se importa: se calcula con precio y costo.
+    // NUEVO: Campo Marca. Cada columna tiene ahora "excelHeader": el encabezado en MAYÚSCULAS que lleva la plantilla.
+    //        Los aliases incluyen esos encabezados (con unidad) para que el archivo vuelva a importarse sin problemas.
     const COLUMNS = [
-        { key: 'sku', header: 'SKU', required: true, aliases: ['sku', 'codigo', 'codigo sku', 'codigo de producto'], help: 'Código único del producto dentro de la sede', example: 'SKU-001' },
-        { key: 'producto', header: 'Nombre del Producto', required: true, aliases: ['nombre del producto', 'producto', 'nombre', 'descripcion'], help: 'Nombre del producto', example: 'Leche entera 1 L' },
-        { key: 'stock', header: 'Stock', required: true, aliases: ['stock', 'cantidad', 'existencias'], help: 'Unidades disponibles', example: 120 },
-        { key: 'costo', header: 'Costo', required: true, aliases: ['costo', 'costo unitario', 'costo por unidad'], help: `Costo por unidad en ${CURRENCY}`, example: 3.5 },
-        { key: 'precio', header: 'Precio de Venta', required: true, aliases: ['precio de venta', 'precio venta', 'precio', 'pvp'], help: `Precio de venta por unidad en ${CURRENCY}`, example: 4.9 },
-        { key: 'ventas', header: 'Ventas', required: false, aliases: ['ventas', 'unidades vendidas'], help: 'Unidades vendidas en el periodo. Si se deja vacío se asume 0', example: 360 },
-        { key: 'rotacion', header: 'Rotación', required: false, aliases: ['rotacion', 'indice de rotacion'], help: 'Veces que rota el inventario. Si se deja vacío se calcula como Ventas / Stock', example: 3 }
+        { key: 'sku', header: 'SKU', excelHeader: 'SKU', required: true, aliases: ['sku', 'codigo', 'codigo sku', 'codigo de producto'], help: 'Código único del producto dentro de la sede', example: 'SKU-001' },
+        { key: 'producto', header: 'Nombre del Producto', excelHeader: 'NOMBRE DEL PRODUCTO', required: true, aliases: ['nombre del producto', 'producto', 'nombre', 'descripcion'], help: 'Nombre del producto', example: 'Leche entera 1 L' },
+        // NUEVO: Campo Marca (opcional, para que los archivos antiguos sin esta columna sigan importándose)
+        { key: 'marca', header: 'Marca', excelHeader: 'MARCA', required: false, aliases: ['marca', 'fabricante'], help: 'Marca del producto. Si se deja vacío queda sin marca', example: 'Gloria' },
+        { key: 'stock', header: 'Stock', excelHeader: 'STOCK', required: true, aliases: ['stock', 'cantidad', 'existencias'], help: 'Unidades disponibles', example: 120 },
+        { key: 'costo', header: 'Costo', excelHeader: 'COSTO (S/)', required: true, aliases: ['costo', 'costo (s/)', 'costo unitario', 'costo por unidad'], help: `Costo por unidad en ${CURRENCY}`, example: 3.5 },
+        { key: 'precio', header: 'Precio de Venta', excelHeader: 'PRECIO DE VENTA (S/)', required: true, aliases: ['precio de venta', 'precio de venta (s/)', 'precio venta', 'precio', 'pvp'], help: `Precio de venta por unidad en ${CURRENCY}`, example: 4.9 },
+        { key: 'ventas', header: 'Ventas', excelHeader: 'VENTAS', required: false, aliases: ['ventas', 'unidades vendidas'], help: 'Unidades vendidas en el periodo. Si se deja vacío se asume 0', example: 360 },
+        { key: 'rotacion', header: 'Rotación', excelHeader: 'ROTACIÓN', required: false, aliases: ['rotacion', 'indice de rotacion'], help: 'Veces que rota el inventario. Si se deja vacío se calcula como Ventas / Stock', example: 3 }
     ];
 
     // Columnas ordenables: etiqueta para el chip y tipo de dato
     const SORT_COLUMNS = {
         sku: { label: 'SKU', type: 'text' },
         producto: { label: 'nombre', type: 'text' },
+        marca: { label: 'marca', type: 'text' },  // NUEVO: Campo Marca
         stock: { label: 'stock', type: 'number' },
         costo: { label: 'costo', type: 'number' },
         precio: { label: 'precio', type: 'number' },
@@ -127,15 +63,8 @@
        --------------------------------------------------------- */
     const $ = (id) => document.getElementById(id);
 
-    // Normaliza texto: sin tildes, minúsculas y espacios simples (para comparar y buscar)
-    const normalize = (s) => String(s ?? '')
-        .normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .toLowerCase().trim().replace(/\s+/g, ' ');
-
-    // Escapa HTML: los datos del usuario nunca se insertan sin escapar
-    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
-        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-    ));
+    // Utilidades comunes (escape HTML, normalización, paginación, mensajes y validación)
+    const { esc, normalize, renderPagination, bindPagination, showBox, hideBox, setInvalid, clearInvalid, autoClearInvalid } = AppUtils;
 
     const isBlank = (v) => String(v ?? '').trim() === '';
     const isNonNegative = (n) => Number.isFinite(n) && n >= 0;
@@ -163,7 +92,8 @@
          sedes: { "Panamericana": { importedAt, fileName, products: [...] }, "Av. Grau": {...} },
          transfers: [ { id, fecha, origen, destino, sku, producto, cantidad, motivo } ]
        }
-       Cada producto: { sku, producto, stock, costo, precio, ventas, rotacion|null }
+       Cada producto: { sku, producto, marca, stock, costo, precio, ventas, rotacion|null }
+       (marca es nuevo: los productos guardados antes de este cambio no la tienen y se muestran con "—")
        --------------------------------------------------------- */
     const Store = {
         empty() {
@@ -203,18 +133,13 @@
             try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* se ignora */ }
         },
 
-        // Última sede vista (si no es válida, usa la primera)
+        // Última sede vista (compartida con los demás módulos)
         loadSede() {
-            try {
-                const saved = localStorage.getItem(SEDE_KEY);
-                return SEDES.includes(saved) ? saved : SEDES[0];
-            } catch (e) {
-                return SEDES[0];
-            }
+            return AppSede.load();
         },
 
         saveSede(name) {
-            try { localStorage.setItem(SEDE_KEY, name); } catch (e) { /* se ignora */ }
+            AppSede.save(name);
         }
     };
 
@@ -229,7 +154,8 @@
     const calcRotacion = (p) => (Number.isFinite(p.rotacion) ? p.rotacion : (p.stock > 0 ? p.ventas / p.stock : null));
 
     // Copia de los productos con las métricas calculadas (solo para mostrar)
-    const withMetrics = (products) => products.map((p) => ({ ...p, margen: calcMargen(p), rotacion: calcRotacion(p) }));
+    // NUEVO: Campo Marca -> los productos guardados antes del cambio no traen marca: se normaliza a ''
+    const withMetrics = (products) => products.map((p) => ({ ...p, marca: p.marca ?? '', margen: calcMargen(p), rotacion: calcRotacion(p) }));
 
     // Dirección inicial al ordenar por una columna nueva: texto A-Z, números de mayor a menor
     const firstDirection = (key) => (SORT_COLUMNS[key].type === 'text' ? 'asc' : 'desc');
@@ -242,6 +168,8 @@
         const vb = b[sortKey];
 
         if (SORT_COLUMNS[sortKey].type === 'text') {
+            // NUEVO: Campo Marca -> los productos sin marca van siempre al final
+            if (isBlank(va) || isBlank(vb)) return isBlank(va) && isBlank(vb) ? 0 : (isBlank(va) ? 1 : -1);
             return String(va).localeCompare(String(vb), 'es', { numeric: true, sensitivity: 'base' }) * dir;
         }
         if (va == null || vb == null) return va == null && vb == null ? 0 : (va == null ? 1 : -1);
@@ -259,7 +187,7 @@
         const byName = products.filter((p) => normalize(p.producto) === q);
         if (byName.length === 1) return { product: byName[0] };
 
-        const partial = products.filter((p) => normalize(`${p.sku} ${p.producto}`).includes(q));
+        const partial = products.filter((p) => normalize(`${p.sku} ${p.producto} ${p.marca ?? ''}`).includes(q));  // NUEVO: Campo Marca
         if (partial.length === 1) return { product: partial[0] };
         if (partial.length > 1 || byName.length > 1) {
             return { error: 'Hay varios productos que coinciden. Escribe el SKU exacto o elige uno de la lista.' };
@@ -271,23 +199,53 @@
        2.5 EXCEL: plantilla e importación (SheetJS)
        --------------------------------------------------------- */
     const Excel = {
-        // Descarga la plantilla: hoja "Productos" con encabezados + hoja "Instrucciones"
+        // NUEVO: Plantilla profesional. Descarga un libro con 2 hojas:
+        //   "Productos"     -> bloque de instrucciones arriba + encabezados en MAYÚSCULAS + columnas anchas
+        //   "Instrucciones" -> descripción, obligatoriedad y ejemplo de cada columna
+        // Nota: SheetJS (versión gratuita) no escribe estilos de celda (negrita, colores), por eso el orden
+        //       visual se logra con filas de instrucciones combinadas, alturas de fila y anchos de columna.
         downloadTemplate() {
             if (typeof XLSX === 'undefined') {
                 throw new Error('No se pudo cargar la librería de Excel. Revisa tu conexión a internet.');
             }
             const wb = XLSX.utils.book_new();
+            const lastCol = COLUMNS.length - 1;
 
-            const sheet = XLSX.utils.aoa_to_sheet([COLUMNS.map((c) => c.header)]);
-            sheet['!cols'] = COLUMNS.map((c) => ({ wch: Math.max(c.header.length + 4, 16) }));
+            // NUEVO: filas de instrucciones que van encima de los encabezados (el importador las salta solo)
+            const instructions = [
+                'PLANTILLA DE CARGA DE PRODUCTOS · GRUPO SAN JOSÉ',
+                'Completa los datos desde la fila {DATA}. No modifiques, muevas ni borres los encabezados de la fila {HEAD}.',
+                'Obligatorios: SKU, NOMBRE DEL PRODUCTO, STOCK, COSTO (S/) y PRECIO DE VENTA (S/). Opcionales: MARCA, VENTAS y ROTACIÓN.',
+                'El SKU no puede repetirse. Escribe solo números en stock, costo y precio. El margen de ganancia se calcula solo.'
+            ];
+            const headRow = instructions.length + 1;   // fila de Excel donde van los encabezados
+            const dataRow = headRow + 1;               // primera fila para escribir productos
+            const lines = instructions.map((t) => t.replace('{HEAD}', headRow).replace('{DATA}', dataRow));
+
+            // Encabezados limpios y en mayúsculas (incluye la nueva columna MARCA)
+            const aoa = lines.map((t) => [t]);
+            aoa.push(COLUMNS.map((c) => c.excelHeader));
+            const sheet = XLSX.utils.aoa_to_sheet(aoa);
+
+            // NUEVO: ancho de columnas (en caracteres) para que nada se corte
+            const widths = { sku: 18, producto: 40, marca: 22, stock: 12, costo: 16, precio: 24, ventas: 12, rotacion: 14 };
+            sheet['!cols'] = COLUMNS.map((c) => ({ wch: widths[c.key] || 18 }));
+
+            // NUEVO: cada línea de instrucciones ocupa todo el ancho de la tabla (celdas combinadas)
+            sheet['!merges'] = lines.map((_, r) => ({ s: { r, c: 0 }, e: { r, c: lastCol } }));
+
+            // NUEVO: alturas de fila (título y encabezados más altos)
+            sheet['!rows'] = lines.map((_, r) => ({ hpx: r === 0 ? 28 : 20 })).concat([{ hpx: 26 }]);
+
             XLSX.utils.book_append_sheet(wb, sheet, 'Productos');
 
-            // El ejemplo vive solo en esta hoja y nunca se importa
-            const help = [['Columna', 'Obligatoria', 'Descripción', 'Ejemplo']]
-                .concat(COLUMNS.map((c) => [c.header, c.required ? 'Sí' : 'No', c.help, c.example]));
-            help.push(['Margen de Ganancia', 'No aplica', 'Se calcula automáticamente: (Precio de Venta - Costo) / Precio de Venta', '']);
+            // El ejemplo vive solo en la hoja de ayuda y nunca se importa
+            const help = [['COLUMNA', 'OBLIGATORIA', 'DESCRIPCIÓN', 'EJEMPLO']]
+                .concat(COLUMNS.map((c) => [c.excelHeader, c.required ? 'Sí' : 'No', c.help, c.example]));
+            help.push(['MARGEN DE GANANCIA', 'No aplica', 'Se calcula automáticamente: (Precio de Venta - Costo) / Precio de Venta', '']);
             const helpSheet = XLSX.utils.aoa_to_sheet(help);
-            helpSheet['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 78 }, { wch: 18 }];
+            helpSheet['!cols'] = [{ wch: 26 }, { wch: 14 }, { wch: 80 }, { wch: 18 }];
+            helpSheet['!rows'] = [{ hpx: 24 }];
             XLSX.utils.book_append_sheet(wb, helpSheet, 'Instrucciones');
 
             XLSX.writeFile(wb, 'plantilla_productos.xlsx');
@@ -321,17 +279,24 @@
 
             // Usa la hoja "Productos" si existe; si no, la primera
             const sheetName = wb.SheetNames.find((n) => normalize(n) === 'productos') || wb.SheetNames[0];
-            const json = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '', raw: true });
+            const ws = wb.Sheets[sheetName];
 
-            if (json.length === 0) {
+            // NUEVO: se lee como matriz para poder saltar las filas de instrucciones de la plantilla.
+            // Los encabezados se buscan en las primeras filas (la plantilla antigua los trae en la fila 1).
+            const grid = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true, blankrows: true });
+            const firstRow = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']).s.r : 0;  // fila inicial real de la hoja
+            const headIdx = Excel.findHeaderRow(grid);
+            const body = grid.slice(headIdx + 1);
+
+            if (body.every((r) => r.every((v) => isBlank(v)))) {
                 throw new Error('El archivo no contiene filas de datos. Completa la plantilla e inténtalo de nuevo.');
             }
 
-            // Relaciona los encabezados del archivo con las claves internas
-            const headerMap = {};
-            Object.keys(json[0]).forEach((original) => {
+            // Relaciona los encabezados del archivo con las claves internas (por posición de columna)
+            const headerMap = {};  // índice de columna -> clave interna
+            (grid[headIdx] || []).forEach((original, colIdx) => {
                 const col = COLUMNS.find((c) => c.aliases.includes(normalize(original)));
-                if (col && !Object.values(headerMap).includes(col.key)) headerMap[original] = col.key;
+                if (col && !Object.values(headerMap).includes(col.key)) headerMap[colIdx] = col.key;
             });
 
             const missing = COLUMNS.filter((c) => c.required && !Object.values(headerMap).includes(c.key));
@@ -345,17 +310,18 @@
             const errors = [];
             const seen = new Map();  // SKU normalizado -> fila donde apareció
 
-            json.forEach((raw, i) => {
-                const line = i + 2;  // fila real en Excel (la 1 son los encabezados)
+            body.forEach((raw, i) => {
+                const line = firstRow + headIdx + i + 2;  // fila real en Excel
 
                 // Las filas totalmente vacías se ignoran sin contarlas como error
-                if (Object.values(raw).every((v) => isBlank(v))) return;
+                if (raw.every((v) => isBlank(v))) return;
 
                 const rec = {};
-                Object.entries(headerMap).forEach(([original, key]) => { rec[key] = raw[original]; });
+                Object.entries(headerMap).forEach(([colIdx, key]) => { rec[key] = raw[colIdx]; });
 
                 const sku = String(rec.sku ?? '').trim();
                 const producto = String(rec.producto ?? '').trim();
+                const marca = String(rec.marca ?? '').trim();  // NUEVO: Campo Marca (opcional)
                 const stock = parseNumber(rec.stock);
                 const costo = parseNumber(rec.costo);
                 const precio = parseNumber(rec.precio);
@@ -367,6 +333,7 @@
                 if (!sku) problems.push('falta el SKU');
                 else if (seen.has(normalize(sku))) problems.push(`SKU duplicado (ya aparece en la fila ${seen.get(normalize(sku))})`);
                 if (!producto) problems.push('falta el nombre del producto');
+                if (marca.length > MAX_BRAND_LENGTH) problems.push(`la marca supera ${MAX_BRAND_LENGTH} caracteres`);  // NUEVO: Campo Marca
                 if (!isNonNegative(stock)) problems.push('stock inválido');
                 if (!isNonNegative(costo)) problems.push('costo inválido');
                 if (!isNonNegative(precio)) problems.push('precio de venta inválido');
@@ -379,10 +346,22 @@
                 }
 
                 seen.set(normalize(sku), line);
-                rows.push({ sku, producto, stock, costo, precio, ventas, rotacion });
+                rows.push({ sku, producto, marca, stock, costo, precio, ventas, rotacion });  // NUEVO: marca se guarda con el producto
             });
 
             return { rows, skipped: errors.length, errors };
+        },
+
+        // NUEVO: busca la fila de encabezados dentro de las primeras filas (salta las instrucciones de la plantilla).
+        // Es la primera fila donde al menos 2 celdas coinciden con un encabezado conocido; si no hay, usa la primera.
+        findHeaderRow(grid) {
+            const known = COLUMNS.flatMap((c) => c.aliases);
+            const limit = Math.min(grid.length, 15);
+            for (let i = 0; i < limit; i++) {
+                const hits = grid[i].filter((v) => !isBlank(v) && known.includes(normalize(v))).length;
+                if (hits >= 2) return i;
+            }
+            return 0;
         }
     };
 
@@ -523,6 +502,7 @@
         productSede: $('productSede'),
         pSku: $('pSku'),
         pNombre: $('pNombre'),
+        pMarca: $('pMarca'),  // NUEVO: Campo Marca
         pStock: $('pStock'),
         pVentas: $('pVentas'),
         pCosto: $('pCosto'),
@@ -578,55 +558,13 @@
     }
 
     /* ---------------------------------------------------------
-       2.8 UI: avisos, mensajes y validación de formularios
+       2.8 UI: avisos (los mensajes y la validación son compartidos)
        --------------------------------------------------------- */
 
     // Aviso emergente de confirmación
     function notify(text) {
         el.toastText.textContent = text;
         bootstrap.Toast.getOrCreateInstance(el.toast, { delay: 4500 }).show();
-    }
-
-    // Mensajes dentro de un modal. type: 'warn' | 'error'
-    function showBox(box, type, text, details = []) {
-        box.className = `msg-box msg-${type}`;
-        box.replaceChildren();
-
-        const p = document.createElement('p');
-        p.className = 'mb-0 fw-semibold';
-        p.textContent = text;
-        box.append(p);
-
-        if (details.length) {
-            const ul = document.createElement('ul');
-            ul.className = 'mb-0 mt-2 ps-3 small';
-            details.forEach((d) => {
-                const li = document.createElement('li');
-                li.textContent = d;
-                ul.append(li);
-            });
-            box.append(ul);
-        }
-    }
-
-    function hideBox(box) {
-        box.className = 'msg-box d-none';
-        box.replaceChildren();
-    }
-
-    // Marca o limpia el error de un campo (cada campo vive dentro de un ".field")
-    function setInvalid(input, message) {
-        input.classList.toggle('is-invalid', Boolean(message));
-        const field = input.closest('.field');
-        const feedback = field && field.querySelector('.invalid-feedback');
-        if (feedback) {
-            feedback.textContent = message || '';
-            feedback.classList.toggle('d-block', Boolean(message));
-        }
-    }
-
-    function clearInvalid(form) {
-        form.querySelectorAll('.is-invalid').forEach((input) => setInvalid(input, ''));
     }
 
     const closeModal = (modalEl) => bootstrap.Modal.getOrCreateInstance(modalEl).hide();
@@ -684,7 +622,7 @@
         const term = normalize(state.search);
 
         // 1) Filtrar por texto  2) Ordenar  3) Paginar
-        const filtered = all.filter((r) => !term || normalize(`${r.sku} ${r.producto}`).includes(term));
+        const filtered = all.filter((r) => !term || normalize(`${r.sku} ${r.producto} ${r.marca}`).includes(term));  // NUEVO: Campo Marca (también se busca por marca)
         filtered.sort(compareRows);
 
         const total = filtered.length;
@@ -698,7 +636,7 @@
             const text = all.length === 0
                 ? `No hay productos en ${esc(state.sede)}. Importa un archivo Excel o agrega un producto.`
                 : 'Ningún producto coincide con la búsqueda.';
-            el.tableBody.innerHTML = `<tr class="table-empty"><td colspan="8">${text}</td></tr>`;
+            el.tableBody.innerHTML = `<tr class="table-empty"><td colspan="9">${text}</td></tr>`;
         } else {
             el.tableBody.innerHTML = slice.map((r) => {
                 const margen = r.margen == null
@@ -707,9 +645,12 @@
                 const rotacion = r.rotacion == null
                     ? '<span class="cell-empty">—</span>'
                     : `${fmtDecimal(r.rotacion)}x`;
+                // NUEVO: Campo Marca -> celda nueva (los productos sin marca muestran "—")
+                const marcaCell = r.marca ? esc(r.marca) : '<span class="cell-empty">—</span>';
                 return `<tr>
                     <td class="text-nowrap">${esc(r.sku)}</td>
                     <td>${esc(r.producto)}</td>
+                    <td>${marcaCell}</td>
                     <td>${fmtNumber(r.stock)}</td>
                     <td class="text-nowrap">${fmtMoney(r.costo)}</td>
                     <td class="text-nowrap">${fmtMoney(r.precio)}</td>
@@ -722,26 +663,8 @@
 
         // 5) Información, paginación y controles de orden
         el.tableInfo.textContent = total ? `Mostrando ${start + 1}-${start + slice.length} de ${total}` : '';
-        renderPagination(pages);
+        renderPagination(el.pagination, state.page, pages);
         renderSortControls();
-    }
-
-    function renderPagination(pages) {
-        if (pages <= 1) {
-            el.pagination.innerHTML = '';
-            return;
-        }
-        const item = (label, page, { disabled = false, active = false, aria = '' } = {}) =>
-            `<li class="page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}"><a class="page-link" href="#" data-page="${page}"${aria ? ` aria-label="${aria}"` : ''}>${label}</a></li>`;
-
-        // Ventana de hasta 5 números de página alrededor de la actual
-        const first = Math.max(1, Math.min(state.page - 2, pages - 4));
-        const last = Math.min(pages, first + 4);
-
-        const parts = [item('&laquo;', state.page - 1, { disabled: state.page === 1, aria: 'Anterior' })];
-        for (let p = first; p <= last; p++) parts.push(item(p, p, { active: p === state.page }));
-        parts.push(item('&raquo;', state.page + 1, { disabled: state.page === pages, aria: 'Siguiente' }));
-        el.pagination.innerHTML = parts.join('');
     }
 
     function renderAll() {
@@ -784,6 +707,7 @@
             state.page = 1;
             renderAll();
             el.fileInput.value = '';
+            AppNotifications.add(`Se importaron <strong>${result.rows.length}</strong> productos en la sede <strong>${esc(target)}</strong>.`);
 
             if (result.skipped > 0) {
                 // Se importó lo válido, pero se avisa de lo omitido y el modal queda abierto
@@ -825,6 +749,7 @@
 
         const sku = el.pSku.value.trim();
         const nombre = el.pNombre.value.trim();
+        const marca = el.pMarca.value.trim();  // NUEVO: Campo Marca (opcional)
         const stock = parseNumber(el.pStock.value);
         const costo = parseNumber(el.pCosto.value);
         const precio = parseNumber(el.pPrecio.value);
@@ -841,6 +766,7 @@
         check(el.pSku, sku !== '', 'Ingresa el código del producto.');
         if (sku) check(el.pSku, !duplicated, 'Este SKU ya existe en la sede.');
         check(el.pNombre, nombre !== '', 'Ingresa el nombre del producto.');
+        check(el.pMarca, marca.length <= MAX_BRAND_LENGTH, `La marca no puede superar ${MAX_BRAND_LENGTH} caracteres.`);  // NUEVO: Campo Marca
         check(el.pStock, isNonNegative(stock), 'Ingresa un stock válido (0 o más).');
         check(el.pCosto, isNonNegative(costo), 'Ingresa un costo válido.');
         check(el.pPrecio, isNonNegative(precio), 'Ingresa un precio de venta válido.');
@@ -853,7 +779,7 @@
         }
 
         const saved = commit((draft) => {
-            ensureSede(draft, state.sede).products.push({ sku, producto: nombre, stock, costo, precio, ventas, rotacion: null });
+            ensureSede(draft, state.sede).products.push({ sku, producto: nombre, marca, stock, costo, precio, ventas, rotacion: null });  // NUEVO: Campo Marca se guarda en localStorage con el resto
         });
         if (!saved) {
             showBox(el.productMessage, 'error', 'No se pudo guardar en el navegador (almacenamiento lleno o bloqueado).');
@@ -864,6 +790,7 @@
         renderAll();
         closeModal(el.productModal);
         notify(`Producto "${nombre}" agregado a ${state.sede}.`);
+        AppNotifications.add(`Se agregó el producto <strong>${esc(nombre)}</strong> a la sede <strong>${esc(state.sede)}</strong>.`);
     }
 
     // --- Escáner: control de la interfaz ---
@@ -995,7 +922,7 @@
             if (existing) {
                 existing.stock = roundQty(existing.stock + qty);
             } else {
-                dest.products.push({ sku: src.sku, producto: src.producto, stock: qty, costo: src.costo, precio: src.precio, ventas: 0, rotacion: null });
+                dest.products.push({ sku: src.sku, producto: src.producto, marca: src.marca ?? '', stock: qty, costo: src.costo, precio: src.precio, ventas: 0, rotacion: null });
             }
 
             // Registro del traslado (se conservan los más recientes)
@@ -1020,6 +947,7 @@
         renderAll();
         closeModal(el.transferModal);
         notify(`Traslado registrado: ${fmtNumber(qty)} de "${product.producto}" de ${origen} a ${destino}.`);
+        AppNotifications.add(`Traslado de <strong>${esc(fmtNumber(qty))}</strong> und. de <strong>${esc(product.producto)}</strong> de ${esc(origen)} a ${esc(destino)}.`);
     }
 
     /* ---------------------------------------------------------
@@ -1082,11 +1010,8 @@
         renderTable();
     });
 
-    el.pagination.addEventListener('click', (e) => {
-        e.preventDefault();
-        const link = e.target.closest('[data-page]');
-        if (!link || link.parentElement.classList.contains('disabled')) return;
-        state.page = Number(link.dataset.page);
+    bindPagination(el.pagination, (page) => {
+        state.page = page;
         renderTable();
     });
 
@@ -1121,11 +1046,7 @@
     el.btnScan.addEventListener('click', toggleScanner);
 
     // Al escribir en un campo con error, se limpia su mensaje
-    [el.productForm, el.transferForm].forEach((form) => {
-        const clear = (e) => { if (e.target.classList && e.target.classList.contains('is-invalid')) setInvalid(e.target, ''); };
-        form.addEventListener('input', clear);
-        form.addEventListener('change', clear);
-    });
+    [el.productForm, el.transferForm].forEach(autoClearInvalid);
 
     el.productModal.addEventListener('show.bs.modal', () => {
         el.productForm.reset();

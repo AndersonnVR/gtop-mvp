@@ -1,76 +1,7 @@
 /* =========================================================
-   SECCIÓN 1. SIDEBAR COLAPSABLE
-   (La navegación entre módulos se hace con enlaces normales)
-   ========================================================= */
-(function () {
-    'use strict';
-
-    // ---------- Referencias al DOM ----------
-    const body = document.body;
-    const toggleBtn = document.getElementById('sidebarToggle');
-    const backdrop = document.getElementById('sidebarBackdrop');
-
-    const MOBILE_QUERY = window.matchMedia('(max-width: 991.98px)');
-    const STORAGE_KEY = 'sidebarCollapsed';
-
-    // ---------- Utilidades ----------
-    const isMobile = () => MOBILE_QUERY.matches;
-
-    // Actualiza el atributo ARIA según el estado visible del menú
-    function updateAria() {
-        const expanded = isMobile()
-            ? body.classList.contains('sidebar-open')
-            : !body.classList.contains('sidebar-collapsed');
-        toggleBtn.setAttribute('aria-expanded', String(expanded));
-    }
-
-    // ---------- Expandir / colapsar ----------
-    function toggleSidebar() {
-        if (isMobile()) {
-            // Móvil: abre/cierra el panel superpuesto
-            body.classList.toggle('sidebar-open');
-        } else {
-            // Escritorio: alterna entre ancho completo y solo íconos
-            body.classList.toggle('sidebar-collapsed');
-            try {
-                localStorage.setItem(STORAGE_KEY, body.classList.contains('sidebar-collapsed'));
-            } catch (e) { /* localStorage no disponible: se ignora */ }
-        }
-        updateAria();
-    }
-
-    function closeMobileSidebar() {
-        body.classList.remove('sidebar-open');
-        updateAria();
-    }
-
-    // ---------- Restaurar preferencia guardada (solo escritorio) ----------
-    try {
-        if (localStorage.getItem(STORAGE_KEY) === 'true') {
-            body.classList.add('sidebar-collapsed');
-        }
-    } catch (e) { /* se ignora */ }
-    updateAria();
-
-    // ---------- Eventos ----------
-    toggleBtn.addEventListener('click', toggleSidebar);
-    backdrop.addEventListener('click', closeMobileSidebar);
-
-    // Tecla Escape cierra el menú en móvil
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && isMobile()) closeMobileSidebar();
-    });
-
-    // Al cambiar de móvil a escritorio, se limpia el estado superpuesto
-    MOBILE_QUERY.addEventListener('change', () => {
-        body.classList.remove('sidebar-open');
-        updateAria();
-    });
-})();
-
-
-/* =========================================================
-   SECCIÓN 2. MÓDULO 3: CONTROL DE MERMAS
+   MÓDULO 3: CONTROL DE MERMAS
+   (El sidebar, la campana de notificaciones y las utilidades comunes
+    viven en ../shared/app.js)
    Flujo: Excel -> SheetJS -> validación -> localStorage -> tabla y gráficos
    ========================================================= */
 (function () {
@@ -140,15 +71,8 @@
        2.3 UTILIDADES
        --------------------------------------------------------- */
 
-    // Normaliza texto: sin tildes, minúsculas y espacios simples (para comparar encabezados)
-    const normalize = (s) => String(s ?? '')
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase().trim().replace(/\s+/g, ' ');
-
-    // Escapa HTML: los datos del Excel nunca se insertan sin escapar
-    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
-        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-    ));
+    // Utilidades comunes (escape HTML, normalización, paginación y mensajes)
+    const { esc, normalize, renderPagination, bindPagination, showBox, hideBox } = AppUtils;
 
     const fmtNumber = (n) => Number(n).toLocaleString(LOCALE);
     const fmtMoney = (n) => `${CURRENCY} ${Number(n).toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -368,31 +292,8 @@
     /* ---------------------------------------------------------
        2.8 MODAL: mensajes y flujo de importación
        --------------------------------------------------------- */
-    function showMessage(type, text, details = []) {
-        el.message.className = `msg-box msg-${type}`;  // type: 'warn' | 'error'
-        el.message.replaceChildren();
-
-        const p = document.createElement('p');
-        p.className = 'mb-0 fw-semibold';
-        p.textContent = text;
-        el.message.append(p);
-
-        if (details.length) {
-            const ul = document.createElement('ul');
-            ul.className = 'mb-0 mt-2 ps-3 small';
-            details.forEach((d) => {
-                const li = document.createElement('li');
-                li.textContent = d;
-                ul.append(li);
-            });
-            el.message.append(ul);
-        }
-    }
-
-    function hideMessage() {
-        el.message.className = 'msg-box d-none';
-        el.message.replaceChildren();
-    }
+    const showMessage = (type, text, details = []) => showBox(el.message, type, text, details);  // type: 'warn' | 'error'
+    const hideMessage = () => hideBox(el.message);
 
     const closeModal = () => bootstrap.Modal.getOrCreateInstance(el.modal).hide();
 
@@ -423,6 +324,7 @@
             state.page = 1;
             renderAll();
             el.fileInput.value = '';
+            AppNotifications.add(`Se importaron <strong>${result.rows.length}</strong> registros de mermas desde <strong>${esc(file.name)}</strong>.`);
 
             if (result.skipped > 0) {
                 // Se importó lo válido, pero se avisa de lo omitido y el modal queda abierto
@@ -554,26 +456,8 @@
 
         // 5) Información, paginación e indicadores de orden
         el.tableInfo.textContent = total ? `Mostrando ${start + 1}-${start + slice.length} de ${total}` : '';
-        renderPagination(pages);
+        renderPagination(el.pagination, state.page, pages);
         renderSortIndicators();
-    }
-
-    function renderPagination(pages) {
-        if (pages <= 1) {
-            el.pagination.innerHTML = '';
-            return;
-        }
-        const item = (label, page, { disabled = false, active = false, aria = '' } = {}) =>
-            `<li class="page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}"><a class="page-link" href="#" data-page="${page}"${aria ? ` aria-label="${aria}"` : ''}>${label}</a></li>`;
-
-        // Ventana de hasta 5 números de página alrededor de la actual
-        const first = Math.max(1, Math.min(state.page - 2, pages - 4));
-        const last = Math.min(pages, first + 4);
-
-        const parts = [item('&laquo;', state.page - 1, { disabled: state.page === 1, aria: 'Anterior' })];
-        for (let p = first; p <= last; p++) parts.push(item(p, p, { active: p === state.page }));
-        parts.push(item('&raquo;', state.page + 1, { disabled: state.page === pages, aria: 'Siguiente' }));
-        el.pagination.innerHTML = parts.join('');
     }
 
     function renderSortIndicators() {
@@ -771,11 +655,8 @@
     });
 
     // ---- Tabla: paginación (delegación de eventos) ----
-    el.pagination.addEventListener('click', (e) => {
-        e.preventDefault();
-        const link = e.target.closest('[data-page]');
-        if (!link || link.parentElement.classList.contains('disabled')) return;
-        state.page = Number(link.dataset.page);
+    bindPagination(el.pagination, (page) => {
+        state.page = page;
         renderTable();
     });
 
