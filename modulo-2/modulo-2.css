@@ -1,0 +1,51 @@
+/* =========================================================
+   MÓDULO 2: CONTROL DE PROVEEDORES
+   Solo estilos propios de este módulo.
+   Variables, layout, botones (incluido .btn-claim), formularios, tablas,
+   paginación, modales, gráficos y campana de notificaciones
+   viven en ../shared/app.css
+   ========================================================= */
+
+/* ---- Celdas editables en la tabla de pedidos ---- */
+.editable-cell {
+    position: relative;
+    cursor: pointer;
+    transition: background-color var(--transition), box-shadow var(--transition);
+}
+
+/* Al pasar el mouse (o enfocar con teclado): fondo rojo muy suave y borde fino */
+.editable-cell:hover,
+.editable-cell:focus-visible {
+    background-color: var(--red-50);
+    box-shadow: inset 0 0 0 1px var(--red-300);
+    border-radius: 4px;
+    outline: 0;
+}
+
+/* Input temporal que aparece al editar */
+.editable-input {
+    width: 100%;
+    min-width: 120px;
+    padding: .15rem .35rem;
+    font-size: .9rem;
+}
+
+/* ---- Modal de orden de compra: total a pagar ---- */
+.total-pay {
+    color: var(--red-700);
+    font-weight: 700;
+}
+
+/* ---- Aviso emergente de advertencia: ícono en ámbar suave ---- */
+.app-toast[data-type="warn"] #toastIcon {
+    color: var(--amber-700);
+}
+
+/* ---- Efecto de "recarga" al cambiar de sede (modo demostración) ---- */
+.table-card {
+    transition: opacity .4s ease;
+}
+
+.table-card.is-reloading {
+    opacity: .3;
+}

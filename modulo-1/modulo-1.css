@@ -1,0 +1,117 @@
+/* =========================================================
+   MÓDULO 1: PRODUCTOS Y GANANCIAS
+   Solo estilos propios de este módulo.
+   Variables, layout, botones, formularios, tablas, paginación,
+   modales y campana de notificaciones viven en ../shared/app.css
+   ========================================================= */
+
+/* ---- E1. Barra de herramientas ---- */
+.table-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem;
+}
+
+.toolbar-search {
+    flex: 1 1 240px;
+    max-width: 360px;
+}
+
+/* Menú desplegable "Filtros" */
+.filter-menu {
+    min-width: 230px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--red-900) 14%, transparent);
+}
+
+.filter-title {
+    margin: 0 0 .6rem;
+    font-weight: 600;
+}
+
+/* Chip de orden (criterio activo + dirección) */
+.sort-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .45rem .9rem;
+    background: var(--red-100);
+    border: 1px solid var(--red-200);
+    border-radius: 999px;
+    color: var(--red-800);
+    font-size: .85rem;
+    font-weight: 500;
+    transition: background var(--transition), border-color var(--transition);
+}
+
+.sort-chip:hover {
+    background: var(--red-200);
+    border-color: var(--red-300);
+}
+
+.sort-chip:focus-visible {
+    outline: 2px solid var(--red-400);
+    outline-offset: 2px;
+}
+
+.sort-chip-dir {
+    font-weight: 700;
+}
+
+/* ---- E2. Celdas especiales de la tabla ---- */
+.cell-empty {
+    color: var(--text-muted);
+}
+
+.margin-neg {
+    color: var(--red-700);
+    font-weight: 600;
+}
+
+/* Fila inferior: selector de sede + botón de traslado */
+.table-bottom {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
+    margin-top: 1rem;
+}
+
+/* ---- E3. Modal de agregar producto y escáner ---- */
+.scanner-panel {
+    padding: .75rem;
+    background: var(--red-50);
+    border: 1px solid var(--red-200);
+    border-radius: 10px;
+}
+
+/* Contenedor donde html5-qrcode dibuja el video de la cámara */
+#barcodeReader {
+    width: 100%;
+    min-height: 180px;
+    overflow: hidden;
+    border: 0 !important;
+    border-radius: 8px;
+    background: var(--red-900);
+}
+
+#barcodeReader video {
+    width: 100% !important;
+    border-radius: 8px;
+}
+
+/* ---- E4. Modal de traslado (formulario angosto, como la referencia) ---- */
+.modal-transfer {
+    --bs-modal-width: 380px;
+}
+
+.qty-input {
+    width: 110px;
+}
+
+.modal-transfer textarea {
+    resize: vertical;
+}

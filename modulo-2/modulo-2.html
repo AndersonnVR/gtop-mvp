@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Control de proveedores</title>
+
+    <!-- Bootstrap 5 y Bootstrap Icons (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Sistema de diseño compartido (variables, layout, componentes, campana) -->
+    <link href="../shared/app.css" rel="stylesheet">
+    <!-- Estilos propios del módulo 2 -->
+    <link href="./modulo-2.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- =====================================================
+       1. TOP NAVBAR (fija en la parte superior)
+       ===================================================== -->
+    <header class="app-navbar" role="banner">
+        <div class="d-flex align-items-center gap-3">
+            <!-- Botón que expande/colapsa el sidebar -->
+            <button id="sidebarToggle" class="icon-btn" type="button" aria-label="Alternar menú lateral"
+                aria-controls="sidebar" aria-expanded="true">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <!-- Espacio para el logo -->
+            <img src="../logo_ESJ.png" alt="Logo de Grupo San José" class="brand-logo">
+        </div>
+
+        <div class="d-flex align-items-center gap-2 gap-md-3">
+            <!-- Campana de notificaciones (idéntica en los 3 módulos; la lógica vive en ../shared/app.js) -->
+            <div class="dropdown">
+                <button id="notifDropdown" class="icon-btn" type="button" data-bs-toggle="dropdown"
+                    aria-expanded="false" aria-label="Notificaciones">
+                    <i class="bi bi-bell"></i>
+                    <!-- Contador de no leídas (oculto cuando no hay) -->
+                    <span id="notifBadge" class="notif-badge" hidden>0</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end notif-menu" aria-labelledby="notifDropdown">
+                    <div class="notif-header">
+                        <h2 class="notif-title">Notificaciones</h2>
+                        <button id="notifMarkRead" type="button" class="btn btn-link-brand notif-mark-read">Marcar
+                            leídas</button>
+                    </div>
+                    <!-- Las notificaciones se inyectan desde JS -->
+                    <div id="notifBody" class="notif-body"></div>
+                </div>
+            </div>
+
+            <!-- Saludo de bienvenida -->
+            <div class="welcome-pill">
+                <i class="bi bi-person-circle"></i>
+                <span class="d-none d-md-inline">¡Bienvenida, Ana María!</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- =====================================================
+       2. SIDEBAR (colapsable con JavaScript)
+       Cada opción enlaza a la página de su módulo.
+       ===================================================== -->
+    <aside id="sidebar" class="app-sidebar" aria-label="Navegación principal">
+        <nav>
+            <ul class="nav-list">
+                <li>
+                    <a href="../modulo-1/modulo-1.html" class="nav-item" title="Productos y ganancias">
+                        <i class="bi bi-box-seam"></i>
+                        <span class="nav-label">Productos y ganancias</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="../modulo-2/modulo-2.html" class="nav-item active" title="Control de proveedores"
+                        aria-current="page">
+                        <i class="bi bi-truck"></i>
+                        <span class="nav-label">Control de proveedores</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="../modulo-3/modulo-3.html" class="nav-item" title="Control de mermas">
+                        <i class="bi bi-clipboard-data"></i>
+                        <span class="nav-label">Control de mermas</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Fondo oscuro que aparece en móvil cuando el sidebar está abierto -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+    <!-- =====================================================
+       3. CONTENIDO PRINCIPAL - MÓDULO 2: CONTROL DE PROVEEDORES
+       Todo se renderiza desde JS a partir de los datos guardados.
+       ===================================================== -->
+    <main class="app-main" role="main">
+
+        <!-- Encabezado de la página + selector de sede -->
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+            <h1 class="page-title">Trazabilidad de Proveedores y Órdenes de Compra</h1>
+            <div class="d-flex align-items-center gap-2">
+                <label for="sedeSelect" class="fw-semibold mb-0">Sede:</label>
+                <select id="sedeSelect" class="form-select sede-select" aria-label="Seleccionar sede"></select>
+            </div>
+        </div>
+
+        <div class="row g-4">
+
+            <!-- ---------- COLUMNA IZQUIERDA: gráficos ----------
+                 xl: apilados en una columna de 1/3 · md/lg: lado a lado · móvil: apilados a todo el ancho -->
+            <div class="col-12 col-xl-4">
+                <div class="row g-4">
+
+                    <!-- Gráfico: porcentaje del stock por proveedor -->
+                    <div class="col-12 col-md-6 col-xl-12">
+                        <section class="card-panel h-100" aria-labelledby="tituloStock">
+                            <h2 id="tituloStock" class="panel-title mb-3">Porcentaje del stock que maneja cada
+                                proveedor</h2>
+                            <div class="chart-box chart-box--sm">
+                                <canvas id="stockPieChart" role="img"
+                                    aria-label="Gráfico de pastel del stock por proveedor"></canvas>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Gráfico: comparar precios entre proveedores -->
+                    <div class="col-12 col-md-6 col-xl-12">
+                        <section class="card-panel h-100" aria-labelledby="tituloPrecios">
+                            <h2 id="tituloPrecios" class="panel-title mb-3">Comparar Precios - Proveedores</h2>
+                            <label for="selectProductoPrecio" class="visually-hidden">Producto a comparar</label>
+                            <select id="selectProductoPrecio" class="form-select mb-3">
+                                <option value="" selected disabled>Seleccione un producto</option>
+                                <!-- Las opciones se inyectan desde JS -->
+                            </select>
+                            <div class="chart-box chart-box--sm">
+                                <canvas id="preciosBarChart" role="img"
+                                    aria-label="Gráfico de barras con los precios por proveedor"></canvas>
+                            </div>
+                            <button id="btnComprar" class="btn btn-brand w-100 mt-3" type="button">
+                                <i class="bi bi-cart-plus me-2"></i>Comprar Producto
+                            </button>
+                        </section>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ---------- COLUMNA DERECHA: tablas ---------- -->
+            <div class="col-12 col-xl-8 d-flex flex-column gap-4">
+
+                <!-- Tabla: Productos próximos a reponer -->
+                <section class="card-panel table-card p-0" aria-labelledby="tituloReponer">
+                    <div class="table-card-header">
+                        <h2 id="tituloReponer" class="panel-title mb-0">Productos Próximos a Reponer</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table app-table align-middle mb-0" id="tablaReponer">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Stock</th>
+                                    <th>Proveedor</th>
+                                    <th class="text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody><!-- Renderizado por JS --></tbody>
+                        </table>
+                    </div>
+                    <div class="table-footer">
+                        <span id="infoReponer" class="meta-text"></span>
+                        <nav aria-label="Paginación de productos a reponer">
+                            <ul id="paginacionReponer" class="pagination pagination-sm mb-0"></ul>
+                        </nav>
+                    </div>
+                </section>
+
+                <!-- Tabla: Pedidos -->
+                <section class="card-panel table-card p-0" aria-labelledby="tituloPedidos">
+                    <div class="table-card-header">
+                        <h2 id="tituloPedidos" class="panel-title mb-0">Pedidos</h2>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-brand" type="button" data-bs-toggle="modal"
+                                data-bs-target="#modalAgregarPedido">
+                                <i class="bi bi-plus-lg me-2"></i>Agregar Pedido
+                            </button>
+                            <button class="btn btn-outline-brand" type="button" data-bs-toggle="modal"
+                                data-bs-target="#modalImportarExcel">
+                                <i class="bi bi-file-earmark-excel me-2"></i>Importar Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table app-table align-middle mb-0" id="tablaPedidos">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Proveedor</th>
+                                    <th>Fecha Programada</th>
+                                    <th>Fecha entregada</th>
+                                    <th>Completitud</th>
+                                    <th>Puntualidad</th>
+                                    <th class="text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody><!-- Renderizado por JS --></tbody>
+                        </table>
+                    </div>
+                    <div class="table-footer">
+                        <span id="infoPedidos" class="meta-text"></span>
+                        <nav aria-label="Paginación de pedidos">
+                            <ul id="paginacionPedidos" class="pagination pagination-sm mb-0"></ul>
+                        </nav>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- =====================================================
+       4. MODAL: AGREGAR PEDIDO
+       ===================================================== -->
+    <div class="modal fade" id="modalAgregarPedido" tabindex="-1" aria-labelledby="modalAgregarPedidoLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <form id="formAgregarPedido" novalidate>
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5" id="modalAgregarPedidoLabel">Agregar nuevo pedido</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12 col-sm-5 field">
+                                <label for="inputPedidoID" class="form-label">ID del pedido</label>
+                                <input id="inputPedidoID" class="form-control" type="number" min="1" step="1"
+                                    inputmode="numeric">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-12 col-sm-7 field">
+                                <label for="inputPedidoProveedor" class="form-label">Proveedor</label>
+                                <input id="inputPedidoProveedor" class="form-control" type="text" maxlength="80"
+                                    autocomplete="off">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-12 col-sm-6 field">
+                                <label for="inputFechaProg" class="form-label">Fecha programada</label>
+                                <input id="inputFechaProg" class="form-control" type="date">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-12 col-sm-6 field">
+                                <label for="inputFechaEnt" class="form-label">Fecha entregada <span
+                                        class="text-muted fw-normal">(opcional)</span></label>
+                                <input id="inputFechaEnt" class="form-control" type="date">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-12 col-sm-6 field">
+                                <label for="inputCompletitud" class="form-label">Completitud <span
+                                        class="text-muted fw-normal">(Ej: 51/200)</span></label>
+                                <input id="inputCompletitud" class="form-control" type="text" maxlength="40"
+                                    autocomplete="off">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-12 col-sm-6 field">
+                                <label for="inputPuntualidad" class="form-label">Puntualidad <span
+                                        class="text-muted fw-normal">(opcional)</span></label>
+                                <input id="inputPuntualidad" class="form-control" type="text" maxlength="40"
+                                    autocomplete="off" placeholder="Ej: 5 min tarde">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-brand">Guardar pedido</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+       5. MODAL: IMPORTAR PEDIDOS DESDE EXCEL
+       ===================================================== -->
+    <div class="modal fade" id="modalImportarExcel" tabindex="-1" aria-labelledby="modalImportarExcelLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="modalImportarExcelLabel">Importar pedidos desde Excel</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Paso 1: plantilla -->
+                    <div class="step">
+                        <span class="step-num">1</span>
+                        <div>
+                            <p class="fw-semibold mb-1">Descarga la plantilla</p>
+                            <p class="small text-muted mb-2">Debe contener los encabezados: ID, Proveedor, Fecha
+                                Programada, Fecha entregada, Completitud, Puntualidad.</p>
+                            <button id="btnDescargarPlantillaPedidos" type="button"
+                                class="btn btn-outline-brand btn-sm">
+                                <i class="bi bi-download me-1"></i>Descargar plantilla
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Paso 2: carga del archivo -->
+                    <div class="step">
+                        <span class="step-num">2</span>
+                        <div class="w-100">
+                            <p class="fw-semibold mb-1">Sube el Excel completado</p>
+                            <input id="fileInputPedidos" type="file" class="form-control" accept=".xlsx,.xls,.csv"
+                                aria-label="Archivo Excel con los pedidos">
+                        </div>
+                    </div>
+
+                    <!-- Mensajes de error o advertencia (los escribe el JS) -->
+                    <div id="importMessage" class="msg-box d-none" role="alert"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
+                    <button id="btnProcesarExcel" type="button" class="btn btn-brand" disabled>Importar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+       6. MODAL: NOTIFICAR A PROVEEDOR
+       ===================================================== -->
+    <div class="modal fade" id="modalNotificarProveedor" tabindex="-1" aria-labelledby="modalNotificarLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="modalNotificarLabel">Notificar a proveedor</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="msg-box msg-warn mb-3">
+                        <i class="bi bi-info-circle me-2"></i>Revise el documento de solicitud antes de emitirlo
+                        formalmente.
+                    </div>
+                    <!-- El analista puede leer y editar el texto si es necesario -->
+                    <label for="textoNotificacion" class="visually-hidden">Documento de solicitud</label>
+                    <textarea id="textoNotificacion" class="form-control doc-textarea" rows="14"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-brand" id="btnConfirmarNotificacion">Emitir y
+                        notificar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+       7. MODAL: GENERAR RECLAMO LEGAL
+       ===================================================== -->
+    <div class="modal fade" id="modalGenerarReclamo" tabindex="-1" aria-labelledby="modalReclamoLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="modalReclamoLabel">Generar reclamo legal</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="msg-box msg-error mb-3">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Revise el manifiesto de incumplimiento antes de
+                        enviarlo al departamento legal del proveedor.
+                    </div>
+                    <label for="textoReclamo" class="visually-hidden">Documento del reclamo</label>
+                    <textarea id="textoReclamo" class="form-control doc-textarea" rows="16"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-brand" id="btnConfirmarReclamo">Reportar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+       8. MODAL: ORDEN DE COMPRA (desde el comparador de precios)
+       ===================================================== -->
+    <div class="modal fade" id="modalOrdenCompra" tabindex="-1" aria-labelledby="modalOrdenCompraLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <form id="formOrdenCompra" novalidate>
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5" id="modalOrdenCompraLabel">Generar orden de compra</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12 field">
+                                <label for="compraProducto" class="form-label">Producto</label>
+                                <input id="compraProducto" class="form-control" type="text" readonly>
+                            </div>
+                            <div class="col-12 field">
+                                <label for="compraProveedor" class="form-label">Proveedor seleccionado</label>
+                                <!-- Se llena con las cotizaciones del producto elegido en el comparador -->
+                                <select id="compraProveedor" class="form-select"></select>
+                            </div>
+                            <div class="col-12 col-sm-6 field">
+                                <label for="compraPrecioUnitario" class="form-label">Precio unitario</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">S/</span>
+                                    <input id="compraPrecioUnitario" class="form-control" type="text" readonly>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 field">
+                                <label for="compraCantidad" class="form-label">Cantidad</label>
+                                <input id="compraCantidad" class="form-control" type="number" min="1" step="1"
+                                    inputmode="numeric">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-12 col-sm-6 field">
+                                <label for="compraFecha" class="form-label">Fecha esperada</label>
+                                <input id="compraFecha" class="form-control" type="date">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-12 col-sm-6 field">
+                                <label for="compraTotal" class="form-label">Total a pagar</label>
+                                <input id="compraTotal" class="form-control total-pay" type="text" value="S/ 0.00"
+                                    readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-brand" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-brand">Confirmar compra</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aviso emergente para confirmaciones (mismo componente que el módulo 1) -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="appToast" class="toast app-toast" role="status" aria-live="polite" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-start gap-2">
+                    <i id="toastIcon" class="bi bi-check-circle-fill"></i>
+                    <span id="toastText"></span>
+                </div>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"
+                    aria-label="Cerrar"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Librerías: Bootstrap JS, SheetJS (lectura/escritura de Excel) y Chart.js (gráficos) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    <!-- Lógica compartida (sidebar, notificaciones, utilidades) y lógica propia del módulo -->
+    <script src="../shared/app.js"></script>
+    <script src="./modulo-2.js"></script>
+</body>
+
+</html>
